@@ -1,0 +1,7 @@
+note:
+- each role with the same attribute combination exists just once per graph
+
+indexing:
+- storage: add new column type MultiColumn, which can contain an arbitrary number of entries. Just one allowed in key columns and one in value columns.
+- indexing: create an index table [ relationship, <multicolumn with selectable (defined in index definition, order relevant) properties of role/object> ] -> [ role, object ]
+

@@ -1,0 +1,4 @@
+return class {
+	task = null
+}
+

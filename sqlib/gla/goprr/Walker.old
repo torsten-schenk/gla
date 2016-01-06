@@ -1,0 +1,174 @@
+local StackTask = import("gla.util.StackTask")
+
+/* Node class methods:
+ * - ctor(context [, params]); params depends on whether parameters is specified
+ * - enter() : bool (whether to continue)/void (equal to true)
+ * - run() : bool (whether to continue)/void (equal to true)
+ * - leave() : void
+ * - catch(exception) : bool(whether exception has been catched)/void (equal to false)
+ */
+return class extends StackTask {
+	_model = null
+	_source = null
+
+	context = null //access by subclasses: read-only
+	stackDepth = 0
+
+	constructor(reader, context) {
+		this._model = model
+		this._source = source
+	}
+
+	init = null //function init()
+	finish = null //function finish()
+
+	function begin() {
+		this.context = {
+			_source = this._source,
+			_model = this._model
+		}
+		this.stackDepth = 0
+		if(this.init != null)
+			return this.init()
+		else
+			return true
+	}
+
+	function end() {
+		if(this.finish != null)
+			this.finish()
+	}
+
+	function descend() {
+		local context = {}
+		context.setdelegate(this.context)
+		this.context = context
+		this.stackDepth++
+	}
+
+	function ascend() {
+		this.context = this.context.getdelegate()
+		this.stackDepth--
+	}
+
+	function pn(text) {
+		local line = ""
+		for(local i = 0; i < this.stackDepth; i++)
+			line += "\t"
+		line += text
+		print(line)
+	}
+
+	function edgeBegin(id) {
+		local edge = this.getclass().getattributes(null).edges[id]
+		if("selector" in edge) {
+			local params = null
+			local graph = null
+			local object = null
+			if("parameters" in edge.selector)
+				params = edge.selector.parameters
+			if("_graph" in this.context)
+				graph = this.context._graph;
+			if("_source" in this.context)
+				object = this.context._source; //TODO is source an object or a relationship? allow only objects?
+			this.context._graph <- edge.selector.clazz(params).select(this.context._model, graph, object)
+		}
+		if("iterator" in edge) {
+			local params = null
+			local it
+			if("parameters" in edge.iterator)
+				params = edge.iterator.parameters
+			it = edge.iterator.clazz(this.context._graph, this.context._source, params)
+			this.context._it <- it
+			this.context._source <- null
+		}
+		else
+			this.context._it <- null
+		return true
+	}
+
+	function edgeEnd(id) {
+		local edge = this.getclass().getattributes(null).edges[id]
+		if("selector" in edge)
+			delete this.context._graph
+		if("iterator" in edge)
+			delete this.context._source
+	}
+
+	function edgeNext(id, iteration) {
+		local it = this.context._it
+		if(it == null)
+			return iteration == 0
+		else if(it.atEnd())
+			return false;
+		else {
+			if(it.targetObject != null) //TODO differentiate iterator output this way? additional checks required (i.e. both null)?
+				this.context._source <- it.targetObject
+			else
+				this.context._source <- it.targetRelationship
+			it.next()
+			return true;
+		}
+	}
+
+/*	function edgePrepare(id) {
+		print("EDGE PREPARE " + id)
+	}
+
+	function edgeUnprepare(id) {
+		print("EDGE UNPREPARE " + id)
+	}*/
+
+/*	function edgeAbort(id, exception) {
+		print("EDGE ABORT " + id + " " + exception)
+	}
+
+	function edgeCatch(id, exception) {
+		print("EDGE CATCH " + id + " " + exception)
+	}*/
+
+	function nodeEnter(id) {
+		local metanode = this.getclass().getattributes(null).nodes[id]
+		if("clazz" in metanode) {
+			local params = null
+			local node
+			if("parameters" in metanode)
+				node = metanode.clazz(this.context, metanode.parameters)
+			else
+				node = metanode.clazz(this.context)
+			node.context = this.context
+			this.context._node <- node
+			if(node.enter != null)
+				return node.enter()
+			else
+				return true
+		}
+		else {
+			this.context._node <- null
+			return true
+		}
+	}
+
+	function nodeLeave(id) {
+		local node = this.context._node
+		if(node != null && node.leave != null)
+			node.leave()
+	}
+
+	function nodeRun(id) {
+		local node = this.context._node
+		if(node != null && node.run != null)
+			return node.run()
+		else
+			return true
+	}
+
+	function nodeCatch(id, exception) {
+		local node = this.context._node
+		if(node != null && node.catsh != null)
+			return node.catsh(exception)
+		else
+			return false
+	}
+}
+

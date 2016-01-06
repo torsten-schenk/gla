@@ -1,0 +1,18 @@
+<Document name="asd" other="bla">
+	This is some text immediately after Document
+	<NodeA>
+		This is some text immediately after NodeA
+		<NodeAA/>
+		<NodeAB attr="aValue"/>
+	</NodeA>
+	This is some text following NodeA
+	<NodeB>
+		<NodeBA/>
+		<NodeBB>
+			<NodeBBA/>
+		</NodeBB>
+	</NodeB>
+	<NodeA>
+	</NodeA>
+</Document>
+

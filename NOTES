@@ -1,0 +1,17 @@
+check libmotif for GUI
+fnmatch(): globbing
+
+squirrel:
+	sq_setclassudsize: additional space to allocate when a class is instantiated
+	sq_setreleasehook: call this function when an instance or userdata is gc'ed
+	sq_setinstanceup: set instance userpointer
+	sq_getinstanceup: get instance userpointer
+	sq_settypetag: set a userpointer for a type
+	sq_gettypetag: get userpointer for a type
+
+pool names:
+	pitmp: internal temporary storage, no allocations from this pool leave the function; function may clear the pool
+	petmp: external temporary storage, no allocations from this pool leave the function; function may not clear the pool
+	psession: session storage, allocations may leave the function; the pool will be cleared iff the session is finished
+	pperm: permanent storage, allocations may leave the function; 
+
