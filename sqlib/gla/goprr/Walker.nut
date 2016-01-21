@@ -44,6 +44,7 @@ return class extends StackTask {
 	static EXPLODE = 4
 	static DECOMPOSE = 5
 	static ROOT2OBJ = 6
+	static CURRENT_OBJ2OBJ = 7
 //	static PROPERTIES = 7
 
 	static ObjectNode = class extends Node {
@@ -153,6 +154,17 @@ return class extends StackTask {
 				context._object <- context._it.object()
 				context._role <- context._it.role()
 				return true
+			case CURRENT_OBJ2OBJ:
+				if(("sourcerole" in edge) && !reader.meta.role[context._srcit.metarole()].is(edge.sourcerole))
+					return false
+				else if(("relationship" in edge) && !reader.metanp(context._srcit.relationship()).is(edge.relationship))
+					return false
+				else if(("targetrole" in edge) && !reader.meta.role[context._tgtit.metarole()].is(edge.targetrole))
+					return false
+				else if(("object" in edge) && !reader.metanp(context._tgtit.object()).is(edge.object))
+					return false
+				else
+					return true
 			case NULL:
 				return true
 			default:
@@ -197,6 +209,8 @@ return class extends StackTask {
 			case DECOMPOSE:
 				assert(false) //TODO
 			case NULL:
+				return false
+			case CURRENT_OBJ2OBJ:
 				return false
 			default:
 				assert(false) //BUG indicator

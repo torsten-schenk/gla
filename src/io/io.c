@@ -912,6 +912,48 @@ static SQInteger fn_wseek(
 	return gla_rt_vmsuccess(rt, false);
 }
 
+static SQInteger fn_reof(
+		HSQUIRRELVM vm)
+{
+	SQUserPointer up;
+	int64_t ret;
+	io_t *self;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	self = up;
+
+	if(self->io == NULL)
+		return gla_rt_vmthrow(rt, "Already closed");
+
+	sq_pushbool(vm, gla_io_rstatus(self->io) == GLA_END);
+	return gla_rt_vmsuccess(rt, true);
+}
+
+static SQInteger fn_weof(
+		HSQUIRRELVM vm)
+{
+	SQUserPointer up;
+	int64_t ret;
+	io_t *self;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	self = up;
+
+	if(self->io == NULL)
+		return gla_rt_vmthrow(rt, "Already closed");
+
+	sq_pushbool(vm, gla_io_wstatus(self->io) == GLA_END);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fn_rtell(
 		HSQUIRRELVM vm)
 {
@@ -1359,6 +1401,14 @@ SQInteger gla_mod_io_io_augment(
 
 	sq_pushstring(vm, "wseek", -1);
 	sq_newclosure(vm, fn_wseek, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "reof", -1);
+	sq_newclosure(vm, fn_reof, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "weof", -1);
+	sq_newclosure(vm, fn_weof, 0);
 	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "rtell", -1);

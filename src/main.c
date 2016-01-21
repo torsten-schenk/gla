@@ -383,8 +383,11 @@ int main(
 error:
 	apr_pool_terminate();
 	apr_terminate();
-	pthread_exit(NULL); /* suppress valgrind leak report from dlopen() */
-	return ret;
+//	pthread_exit(NULL); /* suppress valgrind leak report from dlopen() */
+	if(ret == 0)
+		return 0;
+	else
+		return 1;
 }
 #endif
 

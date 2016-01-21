@@ -47,7 +47,7 @@ local Binding = class {
 		this.outgoing = {}
 	}
 
-	//'objects': may be instanceof Object or an array of instanceof Object
+	//'objects': may be instanceof Object or an array of instanceof Object or null for any object type
 	function addin(role, objects, min, max) {
 		assert(!(role in this.incoming) && !(role in this.outgoing))
 		this.incoming[role] <- [ objects, min, max ]
