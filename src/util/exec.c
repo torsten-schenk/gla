@@ -138,6 +138,37 @@ static SQInteger fn_ctor(
 	return gla_rt_vmsuccess(rt, false);
 }
 
+static SQInteger fn_singleshot(
+		HSQUIRRELVM vm)
+{
+	SQUserPointer up;
+	exec_t *self;
+	int ret;
+	SQBool throw_status = false;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	else if(sq_gettop(vm) >= 2 && SQ_FAILED(sq_getbool(vm, 2, &throw_status)))
+		return gla_rt_vmthrow(rt, "Invalid argument 1: expected bool");
+	else if(sq_gettop(vm) > 2)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	self = up;
+
+	if(self->pid != 0)
+		return gla_rt_vmthrow(rt, "Process already executing");
+	ret = execvp(self->args[0], self->args);
+	if(throw_status && ret != 0)
+		return gla_rt_vmthrow(rt, "Program returned error code %d", status);
+	else {
+		sq_pushinteger(vm, status);
+		return gla_rt_vmsuccess(rt, true);
+	}
+	if(ret != 0 && throw_status)
+		return 
+	return gla_rt_vmsuccess(rt, false);
+}
+
 static SQInteger fn_execute(
 		HSQUIRRELVM vm)
 {
@@ -218,22 +249,30 @@ static SQInteger fn_wait(
 	exec_t *self;
 	int ret;
 	int status;
+	SQBool throw_status = false;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 
-	if(sq_gettop(vm) != 1)
-		return gla_rt_vmthrow(rt, "Invalid argument count");
-	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+	if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
 		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	else if(sq_gettop(vm) >= 2 && SQ_FAILED(sq_getbool(vm, 2, &throw_status)))
+		return gla_rt_vmthrow(rt, "Invalid argument 1: expected bool");
+	else if(sq_gettop(vm) > 2)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
 	self = up;
 
 	if(self->pid == 0) {
-		sq_pushbool(vm, false);
+		sq_pushnull(vm);
 		return gla_rt_vmsuccess(rt, true);
 	}
+
 	ret = waitpid(self->pid, &status, 0);
 	self->pid = 0;
-	sq_pushbool(vm, true);
-	return gla_rt_vmsuccess(rt, false);
+	if(throw_status && status != 0)
+		return gla_rt_vmthrow(rt, "Program returned error code %d", status);
+	else {
+		sq_pushinteger(vm, status);
+		return gla_rt_vmsuccess(rt, true);
+	}
 }
 
 static SQInteger fn_stdin(

@@ -1,14 +1,14 @@
 local Buffer = import("gla.io.Buffer")
 local Executer = import("gla.util.Executer")
 
-local e = Executer("ls", "/")
+local e = Executer("ls", "/notexist")
 //local stdin = e.stdin()
 local stdout = e.stdout()
 //local stderr = e.stderr()
 e.execute()
 local buffer = Buffer()
 stdout.read(buffer)
-e.wait()
+e.wait(true)
 
 print("SIZE: " + buffer.size())
 print("GOT: '" + buffer.tostring() + "'")
