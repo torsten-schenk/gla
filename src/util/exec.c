@@ -26,6 +26,7 @@ typedef struct {
 	gla_rt_t *rt;
 	char **args;
 	pid_t pid;
+	int ctrl_pipe;
 	/* if io_X.super.meta != NULL, use redirection */
 	io_t io_stdin;
 	io_t io_stdout;
@@ -138,37 +139,6 @@ static SQInteger fn_ctor(
 	return gla_rt_vmsuccess(rt, false);
 }
 
-static SQInteger fn_singleshot(
-		HSQUIRRELVM vm)
-{
-	SQUserPointer up;
-	exec_t *self;
-	int ret;
-	SQBool throw_status = false;
-	gla_rt_t *rt = gla_rt_vmbegin(vm);
-
-	if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
-		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
-	else if(sq_gettop(vm) >= 2 && SQ_FAILED(sq_getbool(vm, 2, &throw_status)))
-		return gla_rt_vmthrow(rt, "Invalid argument 1: expected bool");
-	else if(sq_gettop(vm) > 2)
-		return gla_rt_vmthrow(rt, "Invalid argument count");
-	self = up;
-
-	if(self->pid != 0)
-		return gla_rt_vmthrow(rt, "Process already executing");
-	ret = execvp(self->args[0], self->args);
-	if(throw_status && ret != 0)
-		return gla_rt_vmthrow(rt, "Program returned error code %d", status);
-	else {
-		sq_pushinteger(vm, status);
-		return gla_rt_vmsuccess(rt, true);
-	}
-	if(ret != 0 && throw_status)
-		return 
-	return gla_rt_vmsuccess(rt, false);
-}
-
 static SQInteger fn_execute(
 		HSQUIRRELVM vm)
 {
@@ -178,6 +148,8 @@ static SQInteger fn_execute(
 	int stdin_pipe[2];
 	int stdout_pipe[2];
 	int stderr_pipe[2];
+	int ctrl_pipe[2];
+	int status;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 
 	if(sq_gettop(vm) != 1)
@@ -220,10 +192,11 @@ static SQInteger fn_execute(
 			self->io_stderr.fd = stderr_pipe[1];
 			while((dup2(stderr_pipe[1], STDERR_FILENO) == -1) && (errno == EINTR));
 		}
+		close(ctrl_pipe[0]);
 		ret = execvp(self->args[0], self->args);
-		exit(ret);
-		assert(false);
-		return gla_rt_vmthrow(rt, "Dead end reached");
+		status = errno;
+		write(ctrl_pipe[1], &status, sizeof(status));
+		exit(1);
 	}
 	else { /* parent process */
 		if(self->io_stdin.super.meta != NULL) {
@@ -238,6 +211,8 @@ static SQInteger fn_execute(
 			close(stderr_pipe[1]);
 			self->io_stderr.fd = stderr_pipe[0];
 		}
+		close(ctrl_pipe[1]);
+		self->ctrl_pipe = ctrl_pipe[0];
 		return gla_rt_vmsuccess(rt, false);
 	}
 }
@@ -249,6 +224,8 @@ static SQInteger fn_wait(
 	exec_t *self;
 	int ret;
 	int status;
+	int bytes;
+	pid_t pid;
 	SQBool throw_status = false;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 
@@ -265,13 +242,29 @@ static SQInteger fn_wait(
 		return gla_rt_vmsuccess(rt, true);
 	}
 
-	ret = waitpid(self->pid, &status, 0);
-	self->pid = 0;
-	if(throw_status && status != 0)
-		return gla_rt_vmthrow(rt, "Program returned error code %d", status);
-	else {
-		sq_pushinteger(vm, status);
-		return gla_rt_vmsuccess(rt, true);
+	while(true) {
+		pid = waitpid(self->pid, &status, 0);
+		if(pid < 0) {
+			switch(errno) {
+				case EINTR:
+					break;
+				default:
+					return gla_rt_vmthrow(rt, "wait() failed with error code %d", errno);
+			}
+		}
+		else if(WIFEXITED(status)) {
+			self->pid = 0;
+			ret = WEXITSTATUS(status);
+			if(ret != 0) {
+				bytes = read(self->ctrl_pipe, &status, sizeof(status));
+				if(bytes == sizeof(status))
+					return gla_rt_vmthrow(rt, "Error starting program: %s", strerror(status));
+				else if(throw_status)
+					return gla_rt_vmthrow(rt, "Program returned error code %d", ret);
+			}
+			sq_pushinteger(vm, 0);
+			return gla_rt_vmsuccess(rt, true);
+		}
 	}
 }
 

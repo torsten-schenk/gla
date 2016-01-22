@@ -1,7 +1,7 @@
 local Buffer = import("gla.io.Buffer")
 local Executer = import("gla.util.Executer")
 
-local e = Executer("ls", "/notexist")
+local e = Executer("ls", "/")
 //local stdin = e.stdin()
 local stdout = e.stdout()
 //local stderr = e.stderr()
