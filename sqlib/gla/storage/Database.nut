@@ -23,17 +23,22 @@ return class {
 		return table
 	}
 
-	function close(name) {
-		if(!(name in _tables))
+	function close(name = null) {
+		if(name == null) {
+			cbridge.database.close(this)
+			_tables = {}
+		}
+		else if(name in _tables) {
+			local table = _tables[name]
+			table._db = null
+			table._name = null
+			cbridge.database.closeTable(this, table)
+			table._c = null
+			/* TODO gc() */
+			delete _tables[name]
+		}
+		else
 			throw "Error closing table '" + name + "': table not existing or not opened"
-
-		local table = _tables[name]
-		table._db = null
-		table._name = null
-		cbridge.database.closeTable(this, table)
-		table._c = null
-		/* TODO gc() */
-		delete _tables[name]
 	}
 
 	function exists(name) {

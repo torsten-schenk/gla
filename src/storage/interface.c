@@ -117,6 +117,35 @@ static SQInteger fnm_table_dtor(
 	return SQ_OK;
 }
 
+static SQInteger fnbr_db_close(
+		HSQUIRRELVM vm)
+{
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+	SQUserPointer up;
+	abstract_database_t *db;
+	abstract_table_t *table;
+	abstract_table_t *next;
+
+	if(sq_gettop(vm) != 2)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 2, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	db = up;
+
+	for(table = db->first_open; table != NULL; table = next) {
+		db->meta->database_methods->close_table(db, table);
+		next = table->next_open;
+		table->db = NULL;
+		table->prev_open = NULL;
+		table->next_open = NULL;
+	}
+	db->first_open = NULL;
+	db->last_open = NULL;
+//	db->meta->database_methods->close(db); TODO also close database here; in all ohter methods, add a check, whether database is currently open
+
+	return gla_rt_vmsuccess(rt, false);
+}
+
 static SQInteger fnbr_db_open_table(
 		HSQUIRRELVM vm)
 {
@@ -1131,6 +1160,10 @@ int gla_mod_storage_table_cbridge(
 
 	sq_pushstring(vm, "ctor", -1);
 	sq_newclosure(vm, fnbr_db_ctor, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "close", -1);
+	sq_newclosure(vm, fnbr_db_close, 0);
 	sq_newslot(vm, -3, false);
 
 	sq_pushstring(vm, "openTable", -1);
