@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <assert.h>
 #include <endian.h>
 #include <errno.h>
@@ -10,6 +11,8 @@
 #include "io.h"
 
 #define TMP_BUFFER_SIZE 1024
+
+#define READFULL_CLUSTER_SIZE 3
 
 /* TODO another method: use a custom Factory instance for unknown type strings or type could not be inferred */
 
@@ -916,7 +919,6 @@ static SQInteger fn_reof(
 		HSQUIRRELVM vm)
 {
 	SQUserPointer up;
-	int64_t ret;
 	io_t *self;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 
@@ -937,7 +939,6 @@ static SQInteger fn_weof(
 		HSQUIRRELVM vm)
 {
 	SQUserPointer up;
-	int64_t ret;
 	io_t *self;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 
@@ -1260,6 +1261,59 @@ done:
 	}
 }
 
+static SQInteger fn_readfull(
+		HSQUIRRELVM vm)
+{
+	SQUserPointer up;
+	io_t *self;
+	int ret;
+	int64_t size;
+	int64_t offset;
+	char *string;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	self = up;
+
+	if(self->io == NULL)
+		return gla_rt_vmthrow(rt, "Entity currently closed");
+
+	size = gla_io_size(self->io);
+	offset = gla_io_rtell(self->io);
+	if(size == GLA_NOTSUPPORTED || offset == GLA_NOTSUPPORTED) {
+		size = 0;
+		string = NULL;
+		while(true) {
+			size += READFULL_CLUSTER_SIZE;
+			string = realloc(string, size);
+			ret = gla_io_read(self->io, string + size - READFULL_CLUSTER_SIZE, READFULL_CLUSTER_SIZE);
+			if(ret < 0)
+				return gla_rt_vmthrow(rt, "Error reading from IO");
+			else if(ret < READFULL_CLUSTER_SIZE) {
+				sq_pushstring(vm, string, size - READFULL_CLUSTER_SIZE + ret);
+				free(string);
+				break;
+			}
+		}
+	}
+	else if(size >= 0 && offset >= 0) {
+		size -= offset;
+		string = apr_palloc(rt->mpstack, size);
+		if(string == NULL)
+			return gla_rt_vmthrow(rt, "Error allocating temporary string");
+		ret = gla_io_read(self->io, string, size);
+		if(ret < 0)
+			return gla_rt_vmthrow(rt, "Error reading from IO");
+		sq_pushstring(vm, string, ret);
+	}
+	else
+		return gla_rt_vmthrow(rt, "Error getting IO information");
+	return gla_rt_vmsuccess(rt, true);
+}
+
 int gla_mod_io_io_init(
 		gla_rt_t *rt,
 		int idx,
@@ -1393,6 +1447,10 @@ SQInteger gla_mod_io_io_augment(
 
 	sq_pushstring(vm, "read", -1);
 	sq_newclosure(vm, fn_read, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "readfull", -1);
+	sq_newclosure(vm, fn_readfull, 0);
 	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "rseek", -1);
