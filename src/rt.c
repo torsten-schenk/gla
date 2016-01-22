@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <assert.h>
 #include <apr_strings.h>
 #include <apr_file_io.h>
@@ -812,6 +813,36 @@ static SQInteger fn_entityof(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_sleep(
+		HSQUIRRELVM vm)
+{
+	int argn = sq_gettop(vm) - 1;
+	SQInteger value;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(argn != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinteger(vm, 2, &value)))
+		return gla_rt_vmthrow(rt, "Invalid argument 1: expected integer");
+	sleep(value);
+	return gla_rt_vmsuccess(rt, false);
+}
+
+static SQInteger fn_usleep(
+		HSQUIRRELVM vm)
+{
+	int argn = sq_gettop(vm) - 1;
+	SQInteger value;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(argn != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinteger(vm, 2, &value)))
+		return gla_rt_vmthrow(rt, "Invalid argument 1: expected integer");
+	usleep(value);
+	return gla_rt_vmsuccess(rt, false);
+}
+
 /* compile a script entity TODO move this function into a module */
 static SQInteger fn_compile(
 		HSQUIRRELVM vm)
@@ -1307,6 +1338,18 @@ gla_rt_t *gla_rt_new(
 
 	sq_pushstring(rt->vm, "compile", -1); /* TODO move to module */
 	sq_newclosure(rt->vm, fn_compile, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
+
+	sq_pushstring(rt->vm, "sleep", -1);
+	sq_newclosure(rt->vm, fn_sleep, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
+
+	sq_pushstring(rt->vm, "usleep", -1);
+	sq_newclosure(rt->vm, fn_usleep, 0);
 	ret = sq_newslot(rt->vm, -3, false);
 	if(ret != SQ_OK)
 		return NULL;
