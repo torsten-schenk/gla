@@ -306,6 +306,41 @@ static SQInteger fn_open(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_exists(
+		HSQUIRRELVM vm)
+{
+	gla_path_t path;
+	int ret;
+	gla_pathinfo_t info;
+	gla_mount_t *mnt;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	GLA_RT_SUBFN(get_path(rt, &path, 1), 0, "Error getting path from instance");
+
+	mnt = gla_rt_resolve(rt, &path, 0, NULL, rt->mpstack);
+	if(mnt == NULL) {
+		if(errno == GLA_NOTFOUND) {
+			sq_pushbool(vm, false);
+			return gla_rt_vmsuccess(rt, true);
+		}
+		else
+			return gla_rt_vmthrow(rt, "Error resolving path");
+	}
+	ret = gla_mount_info(mnt, &info, &path, rt->mpstack);
+	if(ret == GLA_NOTFOUND) {
+		sq_pushbool(vm, false);
+		return gla_rt_vmsuccess(rt, true);
+	}
+	else if(ret == GLA_SUCCESS) {
+		sq_pushbool(vm, true);
+		return gla_rt_vmsuccess(rt, true);
+	}
+	else
+		return gla_rt_vmthrow(rt, "Error getting path info from mount device.");
+}
+
 static SQInteger fn_touch(
 		HSQUIRRELVM vm)
 {
@@ -723,6 +758,10 @@ SQInteger gla_mod_io_packpath_augment(
 	sq_pushstring(vm, "MAX_DEPTH", -1);
 	sq_pushinteger(vm, GLA_PATH_MAX_DEPTH);
 	sq_newslot(vm, 2, true);
+
+	sq_pushstring(vm, "exists", -1);
+	sq_newclosure(vm, fn_exists, 0);
+	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "touch", -1);
 	sq_newclosure(vm, fn_touch, 0);
