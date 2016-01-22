@@ -12,7 +12,7 @@
 
 #define TMP_BUFFER_SIZE 1024
 
-#define READFULL_CLUSTER_SIZE 3
+#define READFULL_CLUSTER_SIZE 65536
 
 /* TODO another method: use a custom Factory instance for unknown type strings or type could not be inferred */
 

@@ -6,7 +6,7 @@ return class {
 	kcols = 0
 	vcols = 0
 
-	constructor(kspec, vspec, anonymous = true) {
+	constructor(kspec, vspec = null, anonymous = true) {
 		local i
 		local v
 		local ncols = 0
@@ -54,7 +54,9 @@ return class {
 			vcols = vspec.len()
 			ncols += vspec.len()
 		}
-		else if(vspec != null)
+		else if(vspec == null)
+			vspec = []
+		else
 			throw "Invalid value column specification: expected either null, table or array of tables"
 
 		columns = array(ncols)
