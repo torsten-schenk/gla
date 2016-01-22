@@ -166,12 +166,12 @@ static SQInteger fn_execute(
 	if(self->io_stdout.super.meta != NULL) {
 		ret = pipe(stdout_pipe);
 		if(ret != 0)
-			return gla_rt_vmthrow(rt, "Error creating stdin pipe");
+			return gla_rt_vmthrow(rt, "Error creating stdout pipe");
 	}
 	if(self->io_stderr.super.meta != NULL) {
 		ret = pipe(stderr_pipe);
 		if(ret != 0)
-			return gla_rt_vmthrow(rt, "Error creating stdin pipe");
+			return gla_rt_vmthrow(rt, "Error creating stderr pipe");
 	}
 	self->pid = fork();
 	if(self->pid < 0)
@@ -249,11 +249,25 @@ static SQInteger fn_wait(
 				case EINTR:
 					break;
 				default:
+					if(self->io_stdin.super.meta != NULL)
+						close(self->io_stdin.fd);
+					if(self->io_stdout.super.meta != NULL)
+						close(self->io_stdout.fd);
+					if(self->io_stderr.super.meta != NULL)
+						close(self->io_stderr.fd);
+					close(self->ctrl_pipe);
 					return gla_rt_vmthrow(rt, "wait() failed with error code %d", errno);
 			}
 		}
 		else if(WIFEXITED(status)) {
 			self->pid = 0;
+			if(self->io_stdin.super.meta != NULL)
+				close(self->io_stdin.fd);
+			if(self->io_stdout.super.meta != NULL)
+				close(self->io_stdout.fd);
+			if(self->io_stderr.super.meta != NULL)
+				close(self->io_stderr.fd);
+			close(self->ctrl_pipe);
 			ret = WEXITSTATUS(status);
 			if(ret != 0) {
 				bytes = read(self->ctrl_pipe, &status, sizeof(status));
