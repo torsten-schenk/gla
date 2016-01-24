@@ -323,6 +323,10 @@ int gla_path_shift_many(
 		gla_path_t *path,
 		int amount);
 
+int gla_path_shift_relative(
+		gla_path_t *path,
+		const gla_path_t *root);
+
 int gla_path_unshift( /* CAUTION: only unshift previously shifted paths!! */
 		gla_path_t *path);
 

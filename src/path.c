@@ -272,6 +272,25 @@ int gla_path_shift_many(
 	return amount;
 }
 
+int gla_path_shift_relative(
+		gla_path_t *path,
+		const gla_path_t *root)
+{
+	int i;
+
+	if(root->entity != NULL)
+		return GLA_INVALID_PATH_TYPE;
+	else if(root->shifted != 0 || path->shifted != 0)
+		return GLA_INVALID_PATH;
+	else if(path->size < root->size)
+		return GLA_INVALID_PATH;
+	for(i = 0; i < root->size; i++)
+		if(strcmp(root->package[i], path->package[i]) != 0)
+			return GLA_INVALID_PATH;
+	path->shifted = root->size;
+	return GLA_SUCCESS;
+}
+
 int gla_path_unshift(
 		gla_path_t *path)
 {
