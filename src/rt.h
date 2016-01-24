@@ -7,6 +7,7 @@ struct gla_rt {
 	gla_store_t *store;
 
 	HSQUIRRELVM vm;
+	HSQOBJECT context_mount; /* this table is used as the this object for _mount.nut */
 	bool shutdown;
 	gla_packreg_t *reg_initialized;
 	gla_entityreg_t *reg_imported;

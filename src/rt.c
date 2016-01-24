@@ -702,7 +702,7 @@ static int mount_run(
 			if(ret != SQ_OK)
 				return GLA_SYNTAX_ERROR;
 
-			sq_pushroottable(rt->vm);
+			sq_pushobject(rt->vm, rt->context_mount);
 			ret = sq_call(rt->vm, 1, true, true);
 			if(ret != SQ_OK)
 				return GLA_SEMANTIC_ERROR;
@@ -1293,6 +1293,16 @@ gla_rt_t *gla_rt_new(
 	sq_setcompilererrorhandler(rt->vm, compile_error_handler);
 	sq_newclosure(rt->vm, runtime_error_handler, 0);
 	sq_seterrorhandler(rt->vm);
+
+	sq_newtable(rt->vm);
+	sq_getstackobj(rt->vm, -1, &rt->context_mount);
+	sq_addref(rt->vm, &rt->context_mount);
+	sq_pushstring(rt->vm, "LOAD_DESCRIPTIONS", -1);
+	sq_pushbool(rt->vm, false);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
+	sq_poptop(rt->vm);
 
 	sq_pushroottable(rt->vm);
 	sq_pushstring(rt->vm, "import", -1);
