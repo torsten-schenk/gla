@@ -1567,7 +1567,7 @@ int gla_rt_mount(
 									return error(rt, GLA_VM, "error getting descriptions array element %d", i);
 								else if(SQ_FAILED(sq_getstring(rt->vm, -1, &string)))
 									return error(rt, GLA_VM, "error in descriptions array: element %d must be a string", i);
-								printf("DESC: %s\n", string);
+//								printf("DESC: %s\n", string);
 								sq_poptop(rt->vm);
 							}
 							break;
