@@ -1,9 +1,26 @@
+//local Registry = import("gla.util.Registry")
+
+local Parser = class {
+}
+
+local Generator = class {
+}
+
+local Importer = class {
+}
+
+local Exporter = class {
+}
+
 local Property = class {
 	name = null
 
 	constructor(name) {
 		this.name = name
 	}
+}
+
+local Constraint = class {
 }
 
 local NonProperty = class {
@@ -128,12 +145,23 @@ local Model = class {
 	graph = null
 	property = null
 
+	parser = null
+	generators = null
+	importers = null
+	exporters = null
+	walkers = null
+
 	constructor() {
 		object = {}
 		role = {}
 		relationship = {}
 		graph = {}
 		property = {}
+/*		parsers = Registry("class", Parser)
+		generators = Registry("class", Generator)
+		importers = Registry("class", Importer)
+		exporters = Registry("class", Exporter)
+		walkers = Registry()*/
 	}
 
 	function add(thang) {
@@ -164,10 +192,27 @@ local Model = class {
 	function finish() {
 		//TODO type order: establish a type order, so that lower() and upper() can be used to determine the range of all instances, INCLUDING those of subclasses
 		//in addition, add another argument 'metaobject' to ModelReader.anchors, so that the specified objects of the requested type can be iterated
+
+		//TODO add instance to 'models' registry
 	}
 }
 
+/*local properties = Registry("class", Property)
+properties.insert(StringProperty, "String")
+properties.insert(IntegerProperty, "Integer")
+properties.insert(BoolProperty, "Bool")
+properties.insert(ReferenceProperty, "Reference")
+
+local constraints = Registry("class", Constraint)
+
+local models = Registry("class", Model)*/
+
+rt.mount.register("gla.goprr.meta.Parser", Parser)
+rt.mount.register("gla.goprr.meta.Generator", Generator)
+rt.mount.register("gla.goprr.meta.Importer", Importer)
+rt.mount.register("gla.goprr.meta.Exporter", Exporter)
 rt.mount.register("gla.goprr.meta.Property", Property)
+rt.mount.register("gla.goprr.meta.Constraint", Constraint)
 rt.mount.register("gla.goprr.meta.NonProperty", NonProperty)
 rt.mount.register("gla.goprr.meta.Binding", Binding)
 rt.mount.register("gla.goprr.meta.Graph", Graph)
@@ -179,4 +224,7 @@ rt.mount.register("gla.goprr.meta.StringProperty", StringProperty)
 rt.mount.register("gla.goprr.meta.IntegerProperty", IntegerProperty)
 rt.mount.register("gla.goprr.meta.BoolProperty", BoolProperty)
 rt.mount.register("gla.goprr.meta.ReferenceProperty", ReferenceProperty)
+/*rt.mount.registry("gla.goprr.meta.properties", properties)
+rt.mount.registry("gla.goprr.meta.constraints", constraints)
+rt.mount.registry("gla.goprr.meta.models", models)*/
 

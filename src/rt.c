@@ -1,3 +1,4 @@
+#include <apr_env.h>
 #include <unistd.h>
 #include <assert.h>
 #include <apr_strings.h>
@@ -682,6 +683,17 @@ static int mnt_resolve(
 	return GLA_NOTFOUND;
 }
 
+static int description_run(
+		gla_rt_t *rt,
+		gla_mount_t *mount,
+		const gla_path_t *entity, /* NOTE: this package is NOT absolute but relative to 'mount' */
+		const char *entity_name,
+		int method,
+		apr_pool_t *pool)
+{
+
+}
+
 static int mount_run(
 		gla_rt_t *rt,
 		gla_mount_t *mount,
@@ -702,7 +714,7 @@ static int mount_run(
 			if(ret != SQ_OK)
 				return GLA_SYNTAX_ERROR;
 
-			sq_pushobject(rt->vm, rt->context_mount);
+			sq_pushroottable(rt->vm);
 			ret = sq_call(rt->vm, 1, true, true);
 			if(ret != SQ_OK)
 				return GLA_SEMANTIC_ERROR;
@@ -755,7 +767,7 @@ static int pack_init(
 			}
 		}
 		path.extension = NULL; /* omit extension in entity name */
-		ret = mount_run(rt, mount, &relpath, gla_path_tostring(&path, pool), method, pool);
+		ret = mount_run(rt, mount, &relpath, gla_path_tostring(&path, pool), method, pool); /* TODO function name is "mount_run"; either create "init_run" or unify run process */
 		if(ret == GLA_NOTFOUND)
 			return GLA_SUCCESS;
 		else
@@ -777,6 +789,27 @@ static SQInteger fn_debug_error(
 		message = NULL;
 	printf("DEBUG error: %s\n", message);
 	return gla_rt_vmthrow(rt, message);
+}
+
+static SQInteger fn_env_get(
+		HSQUIRRELVM vm)
+{
+	int ret;
+	const SQChar *name;
+	char *value;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(rt->vm) != 2)
+		return gla_rt_vmthrow(rt, "invalid argument count");
+	else if(SQ_FAILED(sq_getstring(rt->vm, 2, &name)))
+		return gla_rt_vmthrow_null(rt);
+	
+	ret = apr_env_get(&value, name, rt->mpstack);
+	if(ret == APR_SUCCESS)
+		sq_pushstring(rt->vm, value, -1);
+	else
+		sq_pushnull(rt->vm);
+	return gla_rt_vmsuccess(rt, true);
 }
 
 static SQInteger fn_entityof(
@@ -1293,16 +1326,7 @@ gla_rt_t *gla_rt_new(
 	sq_setcompilererrorhandler(rt->vm, compile_error_handler);
 	sq_newclosure(rt->vm, runtime_error_handler, 0);
 	sq_seterrorhandler(rt->vm);
-
-	sq_newtable(rt->vm);
-	sq_getstackobj(rt->vm, -1, &rt->context_mount);
-	sq_addref(rt->vm, &rt->context_mount);
-	sq_pushstring(rt->vm, "LOAD_DESCRIPTIONS", -1);
-	sq_pushbool(rt->vm, false);
-	ret = sq_newslot(rt->vm, -3, false);
-	if(ret != SQ_OK)
-		return NULL;
-	sq_poptop(rt->vm);
+	rt->gather_descriptions = true; /* TODO DEBUG */
 
 	sq_pushroottable(rt->vm);
 	sq_pushstring(rt->vm, "import", -1);
@@ -1325,6 +1349,12 @@ gla_rt_t *gla_rt_new(
 
 	sq_pushstring(rt->vm, "rt", -1);
 	sq_newtable(rt->vm);
+
+	sq_pushstring(rt->vm, "getenv", -1);
+	sq_newclosure(rt->vm, fn_env_get, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
 
 	sq_pushstring(rt->vm, "arg", -1);
 	sq_newarray(rt->vm, argn);
@@ -1484,6 +1514,7 @@ int gla_rt_mount(
 		int flags)
 { /* TODO note: this code is very similar to gla_rt_mount_at */
 	int ret;
+	int len;
 	int i;
 	gla_path_t path;
 	gla_path_t root;
@@ -1504,20 +1535,52 @@ int gla_rt_mount(
 
 	ret = mount_run(rt, mnt, &path, "[_mount]", method, pool);
 	if(ret == GLA_SUCCESS) {
-		if(sq_gettype(rt->vm, 2) == OT_TABLE) {
+		if(sq_gettype(rt->vm, -1) == OT_TABLE) {
 			sq_pushstring(rt->vm, "package", -1);
-			ret = sq_get(rt->vm, 2);
-			if(ret == SQ_OK && sq_gettype(rt->vm, -1) == OT_STRING) {
-				ret = sq_getstring(rt->vm, -1, &string);
-				if(ret != SQ_OK)
-					return error(rt, GLA_VM, "cannot get package string from squirrel");
-				ret = gla_path_parse_package(&root, string, pool); /* SEMI-TODO: use gla_path_get_package here? maybe not, since assuming that each _mount.package is a string seems sensible */
-				if(ret != GLA_SUCCESS) {
-					gla_path_root(&root);
-					warn(rt, "invalid package '%s' returned by _mount script, ignoring", string);
+			if(!SQ_FAILED(sq_get(rt->vm, -2))) {
+				switch(sq_gettype(rt->vm, -1)) {
+					case OT_STRING:
+						if(SQ_FAILED(sq_getstring(rt->vm, -1, &string)))
+							return error(rt, GLA_VM, "error retrieving string");
+						else if(gla_path_parse_package(&root, string, pool) != GLA_SUCCESS) /* SEMI-TODO: use gla_path_get_package here? maybe not, since assuming that each _mount.package is a string seems sensible */
+							return error(rt, GLA_SEMANTIC_ERROR, "invalid package '%s' returned by _mount script", string);
+						break;
+					case OT_NULL:
+						break;
+					default:
+						return error(rt, GLA_SEMANTIC_ERROR, "'package' entry in _mount script must be a string or null");
+				}
+				sq_poptop(rt->vm);
+			}
+
+			if(rt->gather_descriptions) {
+				sq_pushstring(rt->vm, "descriptions", -1);
+				if(!SQ_FAILED(sq_get(rt->vm, -2))) {
+					switch(sq_gettype(rt->vm, -1)) {
+						case OT_ARRAY:
+							len = sq_getsize(rt->vm, -1);
+							if(len < 0)
+								return error(rt, GLA_VM, "error getting descriptions array size");
+							for(i = 0; i < len; i++) {
+								sq_pushinteger(rt->vm, i);
+								if(SQ_FAILED(sq_get(rt->vm, -2)))
+									return error(rt, GLA_VM, "error getting descriptions array element %d", i);
+								else if(SQ_FAILED(sq_getstring(rt->vm, -1, &string)))
+									return error(rt, GLA_VM, "error in descriptions array: element %d must be a string", i);
+								printf("DESC: %s\n", string);
+								sq_poptop(rt->vm);
+							}
+							break;
+						case OT_NULL:
+							break;
+						default:
+							return error(rt, GLA_SEMANTIC_ERROR, "'descriptions' entry in _mount script must be a string, an array of strings or null");
+					}
+					sq_poptop(rt->vm);
 				}
 			}
 		}
+		sq_poptop(rt->vm);
 	}
 	else if(ret != GLA_NOTFOUND)
 		return error(rt, ret, "error running _mount script");
