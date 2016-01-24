@@ -306,6 +306,37 @@ static SQInteger fn_open(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_tofilepath(
+		HSQUIRRELVM vm)
+{
+	gla_path_t path;
+	gla_mount_t *mnt;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+	const char *filepath;
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	GLA_RT_SUBFN(get_path(rt, &path, 1), 0, "Error getting path from instance");
+
+	mnt = gla_rt_resolve(rt, &path, 0, NULL, rt->mpstack);
+	if(mnt == NULL) {
+		if(errno == GLA_NOTFOUND)
+			return gla_rt_vmthrow(rt, "Error converting entity to file system path: path does not exist");
+		else
+			return gla_rt_vmthrow(rt, "Error resolving path");
+	}
+
+	filepath = gla_mount_tofilepath(mnt, &path, false, rt->mpstack);
+	if(filepath == NULL) {
+		if(errno == GLA_NOTSUPPORTED)
+			return gla_rt_vmthrow(rt, "Error converting entity to file system path: operation not supported");
+		else
+			return gla_rt_vmthrow(rt, "Error converting entity to file system path: unknown error");
+	}
+	sq_pushstring(rt->vm, filepath, -1);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fn_exists(
 		HSQUIRRELVM vm)
 {
@@ -758,6 +789,10 @@ SQInteger gla_mod_io_packpath_augment(
 	sq_pushstring(vm, "MAX_DEPTH", -1);
 	sq_pushinteger(vm, GLA_PATH_MAX_DEPTH);
 	sq_newslot(vm, 2, true);
+
+	sq_pushstring(vm, "tofilepath", -1);
+	sq_newclosure(vm, fn_tofilepath, 0);
+	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "exists", -1);
 	sq_newclosure(vm, fn_exists, 0);

@@ -87,6 +87,7 @@ Base = cbridge.PackagePath(class extends Path {
 	//function touch() = <implemented by cbridge>
 	//function rename() = <implemented by cbridge>
 	//function exists() = <implemented by cbridge>
+	//function tofilepath() = <implemented by cbridge>
 
 	function createable() {
 	}
