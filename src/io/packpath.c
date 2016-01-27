@@ -431,6 +431,31 @@ static SQInteger fn_rename(
 	}
 }
 
+static SQInteger fn_erase(
+		HSQUIRRELVM vm)
+{
+	gla_path_t path;
+	int ret;
+	gla_mount_t *mnt;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	GLA_RT_SUBFN(get_path(rt, &path, 1), 0, "Error getting path from instance");
+
+	mnt = gla_rt_resolve(rt, &path, GLA_MOUNT_TARGET, NULL, rt->mpstack);
+	if(mnt == NULL) {
+		sq_pushbool(vm, false);
+		return gla_rt_vmsuccess(rt, true);
+	}
+	ret = gla_mount_erase(mnt, &path, rt->mpstack);
+	if(ret != GLA_SUCCESS)
+		return gla_rt_vmthrow(rt, "Error erasing path");
+	
+	sq_pushbool(vm, true);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fn_parse(
 		HSQUIRRELVM vm)
 {
@@ -808,6 +833,10 @@ SQInteger gla_mod_io_packpath_augment(
 
 	sq_pushstring(vm, "rename", -1);
 	sq_newclosure(vm, fn_rename, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "erase", -1);
+	sq_newclosure(vm, fn_erase, 0);
 	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "_open", -1); /* TODO move this function to rt.c; mind comment in path.h */

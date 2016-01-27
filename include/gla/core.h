@@ -233,6 +233,11 @@ int gla_mount_touch(
 		bool mkpackage, /* create package if it does not exist */
 		apr_pool_t *petmp);
 
+int gla_mount_erase(
+		gla_mount_t *self,
+		const gla_path_t *entity,
+		apr_pool_t *petmp);
+
 int gla_mount_rename(
 		gla_mount_t *self,
 		const gla_path_t *path,

@@ -80,6 +80,18 @@ int gla_mount_touch(
 	return self->meta->touch(self, path, mkpackage, petmp);
 }
 
+int gla_mount_erase(
+		gla_mount_t *self,
+		const gla_path_t *path,
+		apr_pool_t *petmp)
+{
+	if(gla_path_type(path) != GLA_PATH_ENTITY)
+		return GLA_INVALID_PATH_TYPE;
+	else if(self->meta->erase == NULL)
+		return GLA_NOTSUPPORTED;
+	return self->meta->erase(self, path, petmp);
+}
+
 gla_io_t *gla_mount_open(
 		gla_mount_t *self,
 		const gla_path_t *path,

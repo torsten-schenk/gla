@@ -11,6 +11,7 @@ struct gla_meta_mount {
 	gla_mountit_t *(*entities)(gla_mount_t *self, const gla_path_t *path, apr_pool_t *pool);
 	gla_mountit_t *(*packages)(gla_mount_t *self, const gla_path_t *path, apr_pool_t *pool);
 	int (*touch)(gla_mount_t *self, const gla_path_t *path, bool mkpackage, apr_pool_t *pool);
+	int (*erase)(gla_mount_t *self, const gla_path_t *path, apr_pool_t *pool);
 	gla_io_t *(*open)(gla_mount_t *self, const gla_path_t *path, int mode, apr_pool_t *pool);
 	int (*push)(gla_mount_t *self, gla_rt_t *rt, const gla_path_t *path, apr_pool_t *pool);
 	int (*info)(gla_mount_t *self, gla_pathinfo_t *info, const gla_path_t *path, apr_pool_t *pool); /* return: GLA_NOTFOUND, GLA_INVALID_PATH_TYPE (package/entity confusion), GLA_SUCCESS */
@@ -50,6 +51,11 @@ static int mnt_touch(
 		gla_mount_t *self,
 		const gla_path_t *path, /* path can either denote an entity or a package */
 		bool mkpackage,
+		apr_pool_t *ptmp);
+
+static int mnt_erase(
+		gla_mount_t *self,
+		const gla_path_t *entity,
 		apr_pool_t *ptmp);
 
 static int mnt_rename(

@@ -47,6 +47,7 @@ static gla_meta_mount_t mnt_meta = {
 	.entities = mnt_entities,
 	.packages = mnt_packages,
 	.touch = mnt_touch,
+	.erase = mnt_erase,
 	.info = mnt_info,
 	.tofilepath = mnt_tofilepath,
 	.open = mnt_open,
@@ -415,6 +416,24 @@ int mnt_touch(
 			return GLA_INVALID_PATH_TYPE;
 	}
 	return GLA_SUCCESS;
+}
+
+int mnt_erase(
+		gla_mount_t *self_,
+		const gla_path_t *path,
+		apr_pool_t *pool)
+{
+	const char *filepath;
+	int ret;
+
+	filepath = mnt_tofilepath(self_, path, false, pool);
+	if(filepath == NULL)
+		return errno;
+	ret = apr_file_remove(filepath, pool);
+	if(ret != APR_SUCCESS)
+		return GLA_IO;
+	else
+		return GLA_SUCCESS;
 }
 
 static void io_close(

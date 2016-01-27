@@ -276,7 +276,7 @@ static SQInteger fn_wait(
 				else if(throw_status)
 					return gla_rt_vmthrow(rt, "Program returned error code %d", ret);
 			}
-			sq_pushinteger(vm, 0);
+			sq_pushinteger(vm, ret);
 			return gla_rt_vmsuccess(rt, true);
 		}
 	}
