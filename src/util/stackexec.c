@@ -726,6 +726,43 @@ static SQInteger fn_execute(
 	}
 }
 
+static SQInteger fn_step(
+		HSQUIRRELVM vm)
+{
+	SQUserPointer up;
+	stackexec_t *self;
+	int ret;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	self = up;
+
+	sq_pushstring(vm, "task", -1);
+	sq_get(vm, 1);
+
+	ret = gravm_runstack_step(self->rs);
+	switch(ret) {
+		case GRAVM_RS_THROW:
+			sq_pushobject(rt->vm, self->exception);
+			sq_release(rt->vm, &self->exception);
+			return gla_rt_vmthrow_top(rt);
+		case GRAVM_RS_FATAL:
+			gravm_runstack_dump(self->rs, NULL, NULL);
+			return gla_rt_vmthrow(rt, "fatal error during runstack execution");
+		case GRAVM_RS_FALSE:
+			return gla_rt_vmsuccess(rt, false);
+		case GRAVM_RS_TRUE:
+			return gla_rt_vmsuccess(rt, false);
+			break;
+		default:
+			assert(false);
+			return gla_rt_vmthrow(rt, "unexpected return value of runstack execution");
+	}
+}
+
 static SQInteger fn_suspend(
 		HSQUIRRELVM vm)
 {
@@ -753,6 +790,10 @@ SQInteger gla_mod_util_stackexec_augment(
 
 	sq_pushstring(vm, "execute", -1);
 	sq_newclosure(vm, fn_execute, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "step", -1);
+	sq_newclosure(vm, fn_step, 0);
 	sq_newslot(vm, -3, false);
 
 	sq_pushstring(vm, "suspend", -1);
