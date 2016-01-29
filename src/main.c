@@ -1,3 +1,4 @@
+#include <apr_strings.h>
 #include <apr_general.h>
 #include <apr_env.h>
 #include <apr_file_io.h>
@@ -223,6 +224,39 @@ int main(
 				*cur = 0;
 				if(start < cur)
 					add_path(rt, start, GLA_MOUNT_SOURCE);
+				start = cur + 1;
+			}
+			cur++;
+		}
+	}
+
+	ret = apr_env_get(&envval, "GLA_SQMOD_PATH", temp_pool);
+	if(ret == APR_SUCCESS) {
+		char *start = envval;
+		char *cur = start;
+		bool finished = false;
+		apr_dir_t *dir;
+		apr_finfo_t info;
+		const char *path;
+		while(!finished) {
+			finished = *cur == 0;
+			if(*cur == ':' || *cur == 0) {
+				*cur = 0;
+				if(start < cur) {
+					ret = apr_dir_open(&dir, start, temp_pool);
+					if(ret == APR_SUCCESS) {
+						for(;;) {
+							ret = apr_dir_read(&info, APR_FINFO_DIRENT, dir);
+							if(ret == APR_SUCCESS && strcmp(info.name, ".") != 0 && strcmp(info.name, "..") != 0) {
+								path = apr_psprintf(temp_pool, "%s/%s", start, info.name);
+								add_path(rt, path, GLA_MOUNT_SOURCE); /* TODO (also see liens above and below): report errors or just skip directories, which cause errors? */
+							}
+							else if(ret == APR_ENOENT)
+								break;
+						}
+						apr_dir_close(dir);
+					}
+				}
 				start = cur + 1;
 			}
 			cur++;
