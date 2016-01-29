@@ -6,9 +6,10 @@ local Super = import("gla.storage.memory.Table")
 local db = Database()
 local n = 0
 
-return function(nkey, nvalue) {
+return function(nkey, nvalue, multikey = false) {
 	local colspec = ColumnSpec(nkey, nvalue)
 	local builder = Builder(colspec)
+	builder.multikey = multikey
 	local table = db.open("table_" + n, "ct", builder, 0)
 	n++
 	return table
