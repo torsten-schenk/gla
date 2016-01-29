@@ -230,6 +230,7 @@ int main(
 		}
 	}
 
+	/* TODO add command-line switch to enable/disable modules; where to get name from? directory? */
 	ret = apr_env_get(&envval, "GLA_SQMOD_PATH", temp_pool);
 	if(ret == APR_SUCCESS) {
 		char *start = envval;
