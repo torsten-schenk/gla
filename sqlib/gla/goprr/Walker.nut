@@ -218,11 +218,13 @@ return class extends StackTask {
 	}
 
 	function nodeEnter(id) {
-		local node = getclass().getattributes(null).nodes[id]
-		if(node.classname in getclass())
-			context._node <- this[node.classname](this)
-		else
-			context._node <- null
+		local nodes = getclass().getattributes(null).nodes
+		context._node <- null
+		if(id < nodes.len()) {
+			local node = getclass().getattributes(null).nodes[id]
+			if(node.classname in getclass())
+				context._node = this[node.classname](this)
+		}
 		if(context._node != null && context._node.enter != null)
 			return context._node.enter()
 		else
