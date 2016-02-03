@@ -124,6 +124,43 @@ Printer = class {
 		_append(Fragment.Indent, 1)
 	}
 
+	function pt(text, indentstr = "\t", nlstr = "\n") {
+		local index = 0
+		local indent = 0
+		local curindent
+		for(local next = text.find(nlstr); next != null; next = text.find(nlstr, index)) {
+			curindent = 0
+			while(text.find(indentstr, index) == index) {
+				index += indentstr.len()
+				curindent++
+			}
+			if(index < next) { //i.e. not an empty line
+				if(curindent != indent) {
+					_append(Fragment.Indent, curindent - indent)
+					indent = curindent
+				}
+				_append(Fragment.Text, text.slice(index, next))
+				_append(Fragment.Newline)
+			}
+			index = next + nlstr.len()
+		}
+		curindent = 0
+		while(text.find(indentstr, index) == index) {
+			index += indentstr.len()
+			curindent++
+		}
+		if(index < text.len()) {
+			if(curindent != indent) {
+				_append(Fragment.Indent, curindent - indent)
+				indent = curindent
+			}
+			_append(Fragment.Text, text.slice(index))
+			_append(Fragment.Newline)
+		}
+		if(indent > 0)
+			_append(Fragment.Indent, -indent)
+	}
+
 	function indent(amount = 1) {
 		_append(Fragment.Indent, amount)
 	}
