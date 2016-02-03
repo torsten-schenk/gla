@@ -56,6 +56,12 @@ enum {
 };
 
 typedef struct {
+	const char *buffer;
+	size_t offset;
+	size_t size;
+} string_stream_t;
+
+typedef struct {
 	const void *key;
 	void *data;
 } data_entry_t;
@@ -184,6 +190,15 @@ static inline int success(
 	apr_pool_destroy(rt->mpstack);
 	rt->mpstack = parent;
 	return 0;
+}
+
+static SQInteger string_lexfeed(
+		SQUserPointer strstream_)
+{
+	string_stream_t *strstream = strstream_;
+	if(strstream->offset == strstream->size)
+		return 0;
+	return strstream->buffer[strstream->offset++];
 }
 
 static SQInteger io_lexfeed(
@@ -944,6 +959,30 @@ static SQInteger fn_open(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_eval(
+		HSQUIRRELVM vm)
+{
+	const SQChar *string;
+	string_stream_t stream;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 2)
+		return gla_rt_vmthrow(rt, "invalid argument count");
+	else if(SQ_FAILED(sq_getstring(vm, 2, &string)))
+		return gla_rt_vmthrow(rt, "invalid argument 1: expected string");
+
+	memset(&stream, 0, sizeof(stream));
+	stream.buffer = string;
+	stream.size = strlen(string);
+	if(SQ_FAILED(sq_compile(vm, string_lexfeed, &stream, "<eval>", true)))
+		return gla_rt_vmthrow(rt, "error compiling script");
+
+	sq_pushroottable(rt->vm);
+	if(SQ_FAILED(sq_call(rt->vm, 1, true, true))) /* TODO use arguments?; final bool args: 'retval' and 'vmthrowerror'  */
+		return gla_rt_vmthrow(rt, "error running script"); /* TODO call sq_getlasterror() and throw message on top of stack */
+	return gla_rt_vmsuccess(rt, true);
+}
+
 /* arguments:
  *   entity (string): the entity to run. if no extension is given, a <cnut> file is looked up first.
  *     If no such entity exists, a <nut> entity is looked up. */
@@ -1337,6 +1376,12 @@ gla_rt_t *gla_rt_new(
 
 	sq_pushstring(rt->vm, "run", -1);
 	sq_newclosure(rt->vm, fn_run, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
+
+	sq_pushstring(rt->vm, "eval", -1);
+	sq_newclosure(rt->vm, fn_eval, 0);
 	ret = sq_newslot(rt->vm, -3, false);
 	if(ret != SQ_OK)
 		return NULL;
