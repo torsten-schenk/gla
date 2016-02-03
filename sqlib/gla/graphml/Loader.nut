@@ -230,6 +230,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				case "roundrectangle":
 					context.node.type = "shape:roundrectangle"
 					break
+				case "hexagon":
+					context.node.type = "shape:hexagon"
+					break
 			}
 		}
 	}
