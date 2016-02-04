@@ -998,6 +998,10 @@ int gla_mod_storage_meta_init(
 	sq_addref(vm, &meta->handler_class);
 	sq_poptop(vm);
 
+	sq_pushnull(vm);
+	sq_getstackobj(vm, -1, &meta->null_object);
+	sq_poptop(vm);
+
 	meta->rt = rt;
 	meta->database_methods = database_methods;
 	meta->builder_methods = builder_methods;

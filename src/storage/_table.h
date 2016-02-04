@@ -128,6 +128,7 @@ struct abstract_meta {
 	HSQOBJECT builder_class;
 	HSQOBJECT table_class;
 	HSQOBJECT handler_class;
+	HSQOBJECT null_object;
 	int iterator_size;
 };
 

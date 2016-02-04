@@ -474,10 +474,14 @@ static int m_table_mkrk(
 		abstract_table_t *self_,
 		apr_pool_t *tmp)
 {
+	int i;
 	int ret;
 	table_t *self = (table_t*)self_;
-
-	/* TODO what to do with empty cells? */
+	const colspec_t *colspec = self->colspec;
+	
+	for(i = colspec->n_key; i < colspec->n_total; i++)
+		if(!self->editable_isset[i])
+			memcpy(self->editable_row + i, &self->super.meta->null_object, sizeof(HSQOBJECT));
 	ret = btree_insert(self->btree, self->editable_row);
 	if(ret == -EALREADY) {
 		LOG_ERROR("Error storing row using key: entry with given key already exists");
@@ -495,10 +499,14 @@ static int m_table_mkri(
 		int row,
 		apr_pool_t *tmp)
 {
+	int i;
 	int ret;
 	table_t *self = (table_t*)self_;
+	const colspec_t *colspec = self->colspec;
 
-	/* TODO what to do with empty cells? */
+	for(i = colspec->n_key; i < colspec->n_total; i++)
+		if(!self->editable_isset[i])
+			memcpy(self->editable_row + i, &self->super.meta->null_object, sizeof(HSQOBJECT));
 	ret = btree_insert_at(self->btree, row, self->editable_row);
 	if(ret != 0) {
 		LOG_ERROR("Error storing row using index");
