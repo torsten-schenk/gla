@@ -78,7 +78,7 @@ struct methods_iterator {
 	int (*upd)(abstract_iterator_t *it, apr_pool_t *tmp);
 	/* Load a row using an iterator */
 	int (*ldr)(abstract_iterator_t *it, apr_pool_t *tmp);
-	/* Duplicate iterator */
+	/* Duplicate iterator. No need to call init() on dst  */
 	int (*dup)(abstract_iterator_t *dst, abstract_iterator_t *src, apr_pool_t *tmp);
 };
 

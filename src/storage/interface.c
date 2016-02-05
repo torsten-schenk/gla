@@ -763,6 +763,52 @@ static SQInteger fnm_table_itldr(
 	return gla_rt_vmsuccess(rt, false);
 }
 
+static SQInteger fnm_table_itdup(
+		HSQUIRRELVM vm)
+{
+	int ret;
+	SQUserPointer up;
+	abstract_iterator_t *org;
+	abstract_iterator_t *it;
+	const rtdata_t *rtdata;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	rtdata = gla_rt_data_get(rt, RTDATA_TOKEN);
+	assert(rtdata != NULL);
+	if(sq_gettop(vm) != 2)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 2, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting iterator instance userpointer");
+	org = up;
+	assert(org->table->meta->rt != NULL);
+	if(org->table->db == NULL)
+		return gla_rt_vmthrow(rt, "Table already closed");
+
+	it = calloc(1, org->table->meta->iterator_size);
+	if(it == NULL)
+		return gla_rt_vmthrow(rt, "Error allocating iterator data");
+	it->meta = org->meta;
+	it->table = org->table;
+	it->index = org->index;
+	ret = org->meta->iterator_methods->dup(it, org, rt->mpstack);
+	if(ret != GLA_SUCCESS)
+		return gla_rt_vmthrow(rt, "Error in 'itdup'");
+
+	sq_pushobject(vm, rtdata->iterator_class);
+	if(SQ_FAILED(sq_createinstance(vm, -1))) {
+		free(it);
+		return gla_rt_vmthrow(rt, "Error creating iterator instance");
+	}
+	if(SQ_FAILED(sq_setinstanceup(vm, -1, it))) {
+		free(it);
+		return gla_rt_vmthrow(rt, "Error setting iterator userpointer");
+	}
+	sq_setreleasehook(vm, -1, fnm_table_itdt);
+	sq_pushinteger(vm, it->index);
+	sq_setbyhandle(vm, -2, &rtdata->iterator_index_member);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fnm_table_ptc(
 		HSQUIRRELVM vm)
 {
@@ -1132,6 +1178,10 @@ int gla_mod_storage_table_cbridge(
 
 	sq_pushstring(vm, "itldr", -1);
 	sq_newclosure(vm, fnm_table_itldr, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "itdup", -1);
+	sq_newclosure(vm, fnm_table_itdup, 0);
 	sq_newslot(vm, -3, false);
 
 	sq_pushstring(vm, "ptc", -1);

@@ -354,9 +354,7 @@ return class {
 	function range(beginit, endit) {
 		local result
 
-		_c.itldr(beginit)
-		result = _c.it()
-		_c.clr()
+		result = _c.itdup(beginit)
 		result._c = _c
 		result._colspec = _colspec
 		result.end = endit.index
