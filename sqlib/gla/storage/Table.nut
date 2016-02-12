@@ -289,9 +289,30 @@ return class {
 		result = _c.it()
 		_c.clr()
 		result._c = _c
-		result._colspec = _colspec;
+		result._colspec = _colspec
 		result.begin = result.index
 		result.end = result.index + 1
+		return result
+	}
+
+	function group(key) {
+		local result
+		local dim
+
+		dim = _putcells(0, _colspec.kcols, key)
+		_c.ldrl(dim)
+		result = _c.it()
+		_c.clr()
+		result._c = _c
+		result._colspec = _colspec
+		result.begin = result.index
+
+		dim = _putcells(0, _colspec.kcols, key)
+		_c.ldru(dim)
+		result.end = _c.idx()
+		if(result.end == null)
+			result.end = _c.sz()
+		_c.clr()
 		return result
 	}
 
@@ -304,7 +325,7 @@ return class {
 		result = _c.it()
 		_c.clr()
 		result._c = _c
-		result._colspec = _colspec;
+		result._colspec = _colspec
 		result.begin = 0
 		result.end = _c.sz()
 		return result

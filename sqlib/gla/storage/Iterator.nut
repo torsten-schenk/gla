@@ -18,6 +18,13 @@ return class {
 			return 0;
 	}
 
+	function total() {
+		if(begin == null || end == null)
+			return null
+		else
+			return end - begin
+	}
+
 	function toUpper(key) {
 		local result
 		local dim

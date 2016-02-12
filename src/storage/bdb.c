@@ -91,6 +91,23 @@ typedef struct {
 	bdb_btree_it_t it;
 } it_t;
 
+static void buffer_set_bool(
+		char *buffer,
+		int offset,
+		bool value)
+{
+	memcpy(buffer + offset, &value, SIZE_BOOL);
+}
+
+static bool buffer_get_bool(
+		const char *buffer,
+		int offset)
+{
+	bool value;
+	memcpy(&value, buffer + offset, SIZE_BOOL);
+	return value;
+}
+
 static void buffer_set_int(
 		char *buffer,
 		int offset,
@@ -250,6 +267,7 @@ static int cell_deserialize(
 {
 	int ret;
 	SQInteger vint;
+	SQBool vbool;
 	db_recno_t rec;
 	int size;
 	char *tmp;
@@ -296,6 +314,13 @@ static int cell_deserialize(
 				sq_poptop(vm);
 			}
 			break;
+		case COL_BOOL:
+			vbool = buffer_get_bool(source, 0);
+			sq_pushbool(vm, vbool);
+			sq_getstackobj(vm, -1, target);
+			sq_poptop(vm);
+			break;
+			break;
 		case COL_NULL:
 			sq_pushnull(vm);
 			sq_getstackobj(vm, -1, target);
@@ -317,6 +342,7 @@ static int cell_serialize(
 {
 	database_t *db = (database_t*)table->super.db;
 	SQInteger vint;
+	SQBool vbool;
 	const SQChar *vstr;
 	db_recno_t rec;
 	HSQUIRRELVM vm = table->super.meta->rt->vm;
@@ -335,6 +361,9 @@ static int cell_serialize(
 			case OT_NULL:
 				type = COL_NULL;
 				break;
+			case OT_BOOL:
+				type = COL_BOOL;
+				break;
 			default:
 				sq_poptop(vm);
 				LOG_ERROR("Unsupported or invalid cell value type for variant");
@@ -348,6 +377,11 @@ static int cell_serialize(
 			assert(sq_gettype(vm, -1) == OT_INTEGER);
 			sq_getinteger(vm, -1, &vint);
 			buffer_set_int(target, 0, vint);
+			break;
+		case COL_BOOL:
+			assert(sq_gettype(vm, -1) == OT_BOOL);
+			sq_getbool(vm, -1, &vbool);
+			buffer_set_bool(target, 0, vbool);
 			break;
 		case COL_STRING:
 			assert(sq_gettype(vm, -1) == OT_STRING || sq_gettype(vm, -1) == OT_NULL); /* TODO null vs. empty string */
