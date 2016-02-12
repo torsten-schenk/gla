@@ -977,7 +977,11 @@ static int m_table_ldrl(
 	for(i = 0; i < kcols; i++)
 		if(self->coldata[i].state == CELL_EXTERNAL) { /* TODO CELL_EMPTY? */
 			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false); /* TODO current problem: if a string does not exist in store, what to do? create string in store (mind: read-only database)? return an error (mind: find lower should always work, maybe make an exception for store data)? set string record to 0 (mind: returned position would not neccessarily be the position where the row would be inserted, which violates one principle of find lower)? introduce a proper comparison for store items (mind: in many cases unneccessary overhead in cb_cmp; possibly introduce a cache)? */
-			if(ret != GLA_SUCCESS)
+			if(ret == GLA_NOTFOUND) {
+				self->editable_it.index = bdb_btree_size(self->btree, NULL);
+				return GLA_NOTFOUND;
+			}
+			else if(ret != GLA_SUCCESS)
 				return GLA_IO;
 		}
 	if(kcols == colspec->n_key)
@@ -1026,7 +1030,11 @@ static int m_table_ldru(
 	for(i = 0; i < kcols; i++)
 		if(self->coldata[i].state == CELL_EXTERNAL) { /* TODO CELL_EMPTY? */
 			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false); /* TODO current problem: if a string does not exist in store, what to do? create string in store (mind: read-only database)? return an error (mind: find lower should always work, maybe make an exception for store data)? set string record to 0 (mind: returned position would not neccessarily be the position where the row would be inserted, which violates one principle of find lower)? introduce a proper comparison for store items (mind: in many cases unneccessary overhead in cb_cmp; possibly introduce a cache)? */
-			if(ret != GLA_SUCCESS)
+			if(ret == GLA_NOTFOUND) {
+				self->editable_it.index = bdb_btree_size(self->btree, NULL);
+				return GLA_NOTFOUND;
+			}
+			else if(ret != GLA_SUCCESS)
 				return GLA_IO;
 		}
 	if(kcols == colspec->n_key)
