@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include "io/io.h"
+#include "io/buffer.h"
 
 #define GLA_IO_NOPROTO
 #include "_io.h"
@@ -156,6 +157,12 @@ gla_io_t *gla_io_get(
 		int idx)
 {
 	return gla_mod_io_io_get(rt, idx);
+}
+
+gla_io_t *gla_io_buffer_new(
+		gla_rt_t *rt)
+{
+	return gla_mod_io_buffer_new(rt);
 }
 
 void gla_io_close(

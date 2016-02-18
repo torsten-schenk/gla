@@ -206,6 +206,10 @@ gla_io_t *gla_io_get(
 		gla_rt_t *rt,
 		int idx);
 
+/* push a new buffer instance to opstack and return its io handle */
+gla_io_t *gla_io_buffer_new(
+		gla_rt_t *rt);
+
 uint32_t gla_mount_features(
 		gla_mount_t *self);
 

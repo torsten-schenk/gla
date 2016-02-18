@@ -783,7 +783,11 @@ static int pack_init(
 		}
 		path.extension = NULL; /* omit extension in entity name */
 		ret = mount_run(rt, mount, &relpath, gla_path_tostring(&path, pool), method, pool); /* TODO function name is "mount_run"; either create "init_run" or unify run process */
-		if(ret == GLA_NOTFOUND)
+		if(ret == GLA_SUCCESS) {
+			sq_poptop(rt->vm);
+			return GLA_SUCCESS;
+		}
+		else if(ret == GLA_NOTFOUND)
 			return GLA_SUCCESS;
 		else
 			return ret;

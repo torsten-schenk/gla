@@ -312,3 +312,23 @@ SQInteger gla_mod_io_buffer_augment(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+gla_io_t *gla_mod_io_buffer_new(
+		gla_rt_t *rt)
+{
+	gla_path_t path;
+	int ret;
+
+	gla_path_parse_entity(&path, "gla.io.Buffer", rt->mpstack);
+	ret = gla_rt_import(rt, &path, rt->mpstack);
+	if(ret != GLA_SUCCESS) {
+		errno = ret;
+		return NULL;
+	}
+	sq_pushroottable(rt->vm);
+	if(SQ_FAILED(sq_call(rt->vm, 1, true, false))) {
+		GLA_LOG_ERROR(rt, "Error creating buffer instance");
+	}
+	sq_remove(rt->vm, -2);
+	return gla_mod_io_io_get(rt, -1);
+}
+
