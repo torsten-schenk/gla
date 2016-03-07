@@ -436,7 +436,8 @@ int gla_rt_boot_entity(
 
 int gla_rt_boot_file(
 		gla_rt_t *rt,
-		const char *filename);
+		const char *name,
+		FILE *file);
 
 void gla_rt_dump_value_simple(
 		gla_rt_t *rt,

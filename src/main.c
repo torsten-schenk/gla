@@ -154,6 +154,10 @@ int main(
 	const char *cwd;
 	bool arg_notmp = false; /* TODO parse argument */
 	gla_path_t path;
+
+	printf("ARGS: %d\n", argn);
+	for(i = 0; i < argn; i++)
+		printf("  %d: %s\n", i, argv[i]);
 	
 	apr_app_initialize(&argn, &argv, NULL);
 	apr_pool_initialize();
@@ -383,6 +387,7 @@ int main(
 	else if(arg_file != NULL) {
 		char *full;
 		char *dir;
+		FILE *file;
 
 		full = apr_palloc(temp_pool, strlen(arg_file) + 1);
 		if(full == NULL) {
@@ -397,9 +402,20 @@ int main(
 
 		apr_pool_destroy(temp_pool);
 		temp_pool = NULL;
-		ret = gla_rt_boot_file(rt, arg_file);
+		file = fopen(arg_file, "r");
+		if(file == NULL) {
+			fprintf(stderr, "error opening source file: %s", strerror(errno));
+			ret = GLA_IO;
+			goto error;
+		}
+
+		ret = gla_rt_boot_file(rt, arg_file, file);
 	}
 	else {
+		apr_pool_destroy(temp_pool);
+		temp_pool = NULL;
+
+		ret = gla_rt_boot_file(rt, "<stdin>", stdin);
 /*		apr_file_t *file;
 		ret = apr_file_open_stdin(&file, temp_pool);
 		if(ret != APR_SUCCESS) {
@@ -408,11 +424,11 @@ int main(
 			goto error;
 		}
 		while(true) {
-			apr_file_gets()
+			ret = apr_file_read(file, )
 		}*/
-		fprintf(stderr, "missing argument: parameter '-f' or script entity to execute must be given\n");
+/*		fprintf(stderr, "missing argument: parameter '-f' or script entity to execute must be given\n");
 		ret = GLA_INVALID_ARGUMENT;
-		goto error;
+		goto error;*/
 	}
 
 error:

@@ -1,5 +1,6 @@
 local cbridge = import("gla.io.cbridge")
 local Path = import("gla.io.Path")
+local strlib = import("squirrel.stringlib")
 
 const TYPE_PACKAGE = 0x00
 const TYPE_ENTITY = 0x01
@@ -7,6 +8,8 @@ const TYPE_ENTITY = 0x01
 const STATE_TYPE = 0x01
 const STATE_IT = 0x02
 const STATE_IT_END = 0x04
+
+local regexFilename = strlib.regexp(@"([^\.]*)\.(.*)")
 
 local EntityName = class {
 	name = null
@@ -185,6 +188,14 @@ Base = cbridge.PackagePath(class extends Path {
 			_extension = _it.extension
 		}
 		return this
+	}
+
+	function selectfile(filename) {
+		local cap = regexFilename.capture(filename)
+		if(cap == null)
+			select(filename)
+		else
+			select(filename.slice(cap[1].begin, cap[1].end), filename.slice(cap[2].begin, cap[2].end))
 	}
 
 	function select(leaf = null, extension = null) {

@@ -1759,17 +1759,13 @@ int gla_rt_boot_entity(
 
 int gla_rt_boot_file(
 		gla_rt_t *rt,
-		const char *filename)
+		const char *name,
+		FILE *file) /* TODO add another argument specifying the type: nut, nutobj, nutcom */
 { /* TODO fn_run, fn_import, gla_rt_import, gla_rt_boot_entity and pack_init all contain similar code, improve */
 	int ret;
-	FILE *file;
 	begin(rt);
 
-	file = fopen(filename, "r");
-	if(file == NULL)
-		return error(rt, GLA_IO, "error running file: %s", strerror(errno));
-	/* TODO support for other extensions (nutobj, nutcom) */
-	ret = sq_compile(rt->vm, file_lexfeed, file, filename, true);
+	ret = sq_compile(rt->vm, file_lexfeed, file, name, true);
 	if(ret != SQ_OK)
 		return error(rt, GLA_SEMANTIC_ERROR, "error running script");
 	sq_pushroottable(rt->vm);
