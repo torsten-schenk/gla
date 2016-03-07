@@ -155,10 +155,6 @@ int main(
 	bool arg_notmp = false; /* TODO parse argument */
 	gla_path_t path;
 
-	printf("ARGS: %d\n", argn);
-	for(i = 0; i < argn; i++)
-		printf("  %d: %s\n", i, argv[i]);
-	
 	apr_app_initialize(&argn, &argv, NULL);
 	apr_pool_initialize();
 
