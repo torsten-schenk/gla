@@ -303,6 +303,32 @@ Base = cbridge.PackagePath(class extends Path {
 	static function EntityAscendingName(a, b) {
 		return b.name <=> a.name
 	}
+
+	static function CanonicalizeEntity(entity) {
+		if(typeof(entity) == "string")
+			return Base(entity, true)
+		else if(entity instanceof Base) {
+			if(entity.isEntity())
+				return entity
+			else
+				throw "expected entity"
+		}
+		else
+			throw "invalid entity given"
+	}
+
+	static function CanonicalizePackage(package) {
+		if(typeof(package) == "string")
+			return Base(package)
+		else if(package instanceof Base) {
+			if(package.isPackage())
+				return package
+			else
+				throw "expected package"
+		}
+		else
+			throw "invalid package given"
+	}
 })
 
 return Base

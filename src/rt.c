@@ -2119,6 +2119,12 @@ apr_pool_t *gla_rt_pool_stack(
 	return rt->mpstack;
 }
 
+apr_pool_t *gla_rt_pool_global(
+		gla_rt_t *rt)
+{
+	return rt->mpool;
+}
+
 gla_rt_t *gla_rt_vmbegin(
 		HSQUIRRELVM vm)
 {

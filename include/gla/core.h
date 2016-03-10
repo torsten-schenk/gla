@@ -526,6 +526,9 @@ HSQUIRRELVM gla_rt_vm(
 apr_pool_t *gla_rt_pool_stack(
 		gla_rt_t *rt);
 
+apr_pool_t *gla_rt_pool_global(
+		gla_rt_t *rt);
+
 gla_rt_t *gla_rt_vmbegin(
 		HSQUIRRELVM vm);
 
