@@ -2113,6 +2113,12 @@ HSQUIRRELVM gla_rt_vm(
 	return rt->vm;
 }
 
+bool gla_rt_shutdown(
+		gla_rt_t *rt)
+{
+	return rt->shutdown;
+}
+
 apr_pool_t *gla_rt_pool_stack(
 		gla_rt_t *rt)
 {

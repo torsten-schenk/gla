@@ -490,6 +490,9 @@ int gla_rt_import(
 		const gla_path_t *path,
 		apr_pool_t *pool);
 
+bool gla_rt_shutdown(
+		gla_rt_t *rt);
+
 void *gla_rt_typetag(
 		gla_rt_t *rt,
 		gla_path_t path);
