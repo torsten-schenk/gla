@@ -393,7 +393,8 @@ do { \
 gla_rt_t *gla_rt_new(
 		const char *const *argv,
 		int argn,
-		apr_pool_t *pool);
+		apr_pool_t *minstance,
+		apr_pool_t *msuper);
 
 void gla_rt_ref(
 		gla_rt_t *rt);

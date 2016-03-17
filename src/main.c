@@ -144,6 +144,7 @@ int main(
 	int ret;
 	int i;
 	apr_pool_t *global_pool;
+	apr_pool_t *instance_pool;
 	apr_pool_t *temp_pool;
 	gla_rt_t *rt;
 	gla_mount_t *mnt;
@@ -182,7 +183,12 @@ int main(
 			break;
 		}
 
-	rt = gla_rt_new(argv + i, argn - i, global_pool);
+	ret = apr_pool_create(&instance_pool, global_pool);
+	if(ret != APR_SUCCESS) {
+		fprintf(stderr, "error creating instance memory pool\n");
+		goto error;
+	}
+	rt = gla_rt_new(argv + i, argn - i, instance_pool, global_pool);
 	if(rt == NULL) {
 		fprintf(stderr, "error creating new runtime\n");
 		ret = errno;

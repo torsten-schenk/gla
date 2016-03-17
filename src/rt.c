@@ -1279,23 +1279,19 @@ static apr_status_t cleanup(
 gla_rt_t *gla_rt_new(
 		const char *const *argv,
 		int argn,
-		apr_pool_t *pool)
+		apr_pool_t *minstance,
+		apr_pool_t *msuper)
 {
 	int i;
 	int ret;
-	gla_rt_t *rt = apr_pcalloc(pool, sizeof(gla_rt_t));
+	gla_rt_t *rt = apr_pcalloc(minstance, sizeof(gla_rt_t));
 	gla_path_t path;
 
 	assert(sizeof(SQInteger) >= sizeof(void*));
 	assert(NULL == 0);
 
-	rt->msuper = pool;
-	rt->mpool = pool;
-/*	ret = apr_pool_create(&rt->mpool, pool);
-	if(ret != APR_SUCCESS) {
-		free(rt);
-		return NULL;
-	}*/
+	rt->msuper = msuper;
+	rt->mpool = minstance;
 
 	ret = apr_pool_create(&rt->mpstack, rt->mpool);
 	if(ret != APR_SUCCESS) {
