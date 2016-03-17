@@ -61,6 +61,15 @@ return class {
 		_c.itmv(this, -amount)
 	}
 
+	//note: invalidates iterator! (at least for now)
+	function remove() {
+		_c.rmr(index, 1)
+		//the following code should keep the iterator valid (after next() has been called), but it is untested yet
+		//most probably the internal iterator needs to be updated to
+		index--
+		end--
+	}
+
 	function value() {
 		local result
 

@@ -213,10 +213,20 @@ return class {
 		return result
 	}
 
-	function insertAt(row, cells = null) {
-		if(row < 0 || row > _c.size)
+	function append(value = null) {
+		::assert(_colspec.kcols == 0)
+		if(value != null)
+			_putcells(0, _colspec.vcols, value)
+		_c.mkri(_c.sz())
+		_c.clr()
+	}
+
+	function insertAt(row, value = null) {
+		::assert(_colspec.kcols == 0)
+		if(row < 0 || row > _c.sz())
 			throw "Error inserting row: invalid row index '" + row + "'"
-		throw "Not yet implemented"
+		if(value != null)
+			_putcells(0, _colspec.vcols, value)
 		_c.mkri(row)
 		_c.clr()
 	}
@@ -232,6 +242,10 @@ return class {
 			_putcells(_colspec.kcols, _colspec.vcols, value)
 		_c.mkrk()
 		_c.clr()
+	}
+
+	function clear() {
+		return _c.rmr(0, _c.sz())
 	}
 
 	function removeAt(row, n = 1) {
