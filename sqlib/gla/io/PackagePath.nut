@@ -270,6 +270,13 @@ Base = cbridge.PackagePath(class extends Path {
 		return (_state & STATE_IT) != 0
 	}
 
+	function fragment(index) {
+		if(index < 0 || index >= _size)
+			return null
+		else
+			return _package[index]
+	}
+
 	function _tostring() { //TODO quote fragments which require quoting (i.e. those containing a dot)
 		local result
 		if(_extension != null)

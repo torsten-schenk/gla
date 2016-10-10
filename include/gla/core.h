@@ -159,6 +159,8 @@ typedef struct gla_meta_io gla_meta_io_t;
 struct gla_pathinfo {
 	int access; /* or'ed GLA_ACCESS_x */
 	bool can_create;
+	int64_t created; /* 0: unused */
+	int64_t modified; /* 0: unused */
 };
 
 int gla_io_read(

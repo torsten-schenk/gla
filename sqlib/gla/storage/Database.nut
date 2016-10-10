@@ -32,7 +32,7 @@ return class {
 			local table = _tables[name]
 			table._db = null
 			table._name = null
-			cbridge.database.closeTable(this, table)
+			cbridge.database.closeTable(this, table._c)
 			table._c = null
 			/* TODO gc() */
 			delete _tables[name]

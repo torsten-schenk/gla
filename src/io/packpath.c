@@ -456,6 +456,58 @@ static SQInteger fn_erase(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_modified(
+		HSQUIRRELVM vm)
+{
+	gla_path_t path;
+	int ret;
+	gla_mount_t *mnt;
+	gla_pathinfo_t info;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	GLA_RT_SUBFN(get_path(rt, &path, 1), 0, "Error getting path from instance");
+
+	mnt = gla_rt_resolve(rt, &path, 0, NULL, rt->mpstack);
+	if(mnt == NULL) {
+		sq_pushbool(vm, false);
+		return gla_rt_vmsuccess(rt, true);
+	}
+	ret = gla_mount_info(mnt, &info, &path, rt->mpstack);
+	if(ret != GLA_SUCCESS)
+		return gla_rt_vmthrow(rt, "Error getting path information");
+	
+	sq_pushinteger(vm, info.modified);
+	return gla_rt_vmsuccess(rt, true);
+}
+
+static SQInteger fn_created(
+		HSQUIRRELVM vm)
+{
+	gla_path_t path;
+	int ret;
+	gla_mount_t *mnt;
+	gla_pathinfo_t info;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	GLA_RT_SUBFN(get_path(rt, &path, 1), 0, "Error getting path from instance");
+
+	mnt = gla_rt_resolve(rt, &path, 0, NULL, rt->mpstack);
+	if(mnt == NULL) {
+		sq_pushbool(vm, false);
+		return gla_rt_vmsuccess(rt, true);
+	}
+	ret = gla_mount_info(mnt, &info, &path, rt->mpstack);
+	if(ret != GLA_SUCCESS)
+		return gla_rt_vmthrow(rt, "Error getting path information");
+	
+	sq_pushinteger(vm, info.created);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fn_parse(
 		HSQUIRRELVM vm)
 {
@@ -821,6 +873,14 @@ SQInteger gla_mod_io_packpath_augment(
 
 	sq_pushstring(vm, "exists", -1);
 	sq_newclosure(vm, fn_exists, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "modified", -1);
+	sq_newclosure(vm, fn_modified, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "created", -1);
+	sq_newclosure(vm, fn_created, 0);
 	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "touch", -1);

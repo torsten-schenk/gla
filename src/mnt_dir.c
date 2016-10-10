@@ -343,11 +343,15 @@ int mnt_info(
 	filepath = mnt_tofilepath(self_, path, false, pool);
 	if(filepath == NULL)
 		return errno;
-	ret = apr_stat(&statinfo, filepath, APR_FINFO_MIN, pool);
+	ret = apr_stat(&statinfo, filepath, APR_FINFO_MIN | APR_FINFO_MTIME | APR_FINFO_CTIME, pool);
 	if(ret == APR_ENOENT)
 		return GLA_NOTFOUND;
 	else if(ret < 0)
 		return GLA_IO;
+	if(info != NULL) {
+		info->created = statinfo.ctime;
+		info->modified = statinfo.mtime;
+	}
 	if(gla_path_type(path) == GLA_PATH_PACKAGE) {
 		if(statinfo.filetype == APR_DIR)
 			return GLA_SUCCESS;
