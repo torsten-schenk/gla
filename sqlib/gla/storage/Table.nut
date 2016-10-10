@@ -86,6 +86,23 @@ return class {
 	}
 
 	function put(key, value) {
+		local dim
+		local exists
+
+		dim = _putcells(0, _colspec.kcols, key)
+		if(dim != _colspec.kcols)
+			throw "Invalid key given"
+		exists = _c.ldrl(dim)
+		if(value != null)
+			_putcells(_colspec.kcols, _colspec.vcols, value)
+		if(exists)
+			_c.str()
+		else {
+			_putcells(0, _colspec.kcols, key)
+			_c.mkrk()
+		}
+		_c.clr()
+		return exists
 	}
 
 	function keyCellAt(row, col) {

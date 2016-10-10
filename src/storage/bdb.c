@@ -1212,7 +1212,27 @@ static int m_table_str(
 		abstract_table_t *self_,
 		apr_pool_t *tmp)
 {
-	return GLA_INTERNAL;
+	int i;
+	int ret;
+	table_t *self = (table_t*)self_;
+	colspec_t *colspec = self->colspec;
+
+	for(i = 0; i < colspec->n_total; i++) {
+		if(self->coldata[i].state == CELL_EXTERNAL) {
+			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false);
+			if(ret != 0)
+				return GLA_IO;
+		}
+		else if(self->coldata[i].state == CELL_EMPTY) {
+			assert(false); /* TODO what to do here? */
+		}
+	}
+	ret = bdb_btree_update(self->btree, NULL, self->editable_it.index, self->editable_row);
+	if(ret != 0) {
+		LOG_ERROR("Error storing row using key");
+		return ret;
+	}
+	return GLA_SUCCESS;
 }
 
 static int m_table_mkrk(
