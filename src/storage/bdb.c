@@ -45,6 +45,12 @@ enum {
 	CELL_EXTERNAL
 };
 
+enum {
+	SERIALIZE_GET,
+	SERIALIZE_TRY,
+	SERIALIZE_NULL
+};
+
 #define OFF_COLSPEC_COL(I) (SIZE_COLSPEC + (I) * SIZE_COLSPEC_COL)
 
 typedef struct table table_t;
@@ -237,9 +243,10 @@ static int cb_acquire(
 	table_t *table = table_;
 	database_t *db = (database_t*)table->super.db;
 	colspec_t *colspec = table->colspec;
+	char *row_data = a_;
 
 	for(i = 0; i < colspec->n_total; i++) {
-		ret = store_addref(db->store, table->editable_row + table->coldata[i].offset, colspec->column[i].type, 1);
+		ret = store_addref(db->store, row_data + table->coldata[i].offset, colspec->column[i].type, 1);
 		if(ret != 0)
 			return ret;
 	}
@@ -254,9 +261,10 @@ static void cb_release(
 	table_t *table = table_;
 	database_t *db = (database_t*)table->super.db;
 	colspec_t *colspec = table->colspec;
+	char *row_data = a_;
 
 	for(i = 0; i < colspec->n_total; i++)
-		store_addref(db->store, table->editable_row + table->coldata[i].offset, colspec->column[i].type, -1);
+		store_addref(db->store, row_data + table->coldata[i].offset, colspec->column[i].type, -1);
 }
 
 static int cell_deserialize(
@@ -333,12 +341,13 @@ static int cell_deserialize(
 	return GLA_SUCCESS;
 }
 
+ /* TODO current problem (note: possible solution already implemented via 'mode' parameter): if a string does not exist in store, what to do? create string in store (mind: read-only database)? return an error (mind: find lower should always work, maybe make an exception for store data)? set string record to 0 (mind: returned position would not neccessarily be the position where the row would be inserted, which violates one principle of find lower)? introduce a proper comparison for store items (mind: in many cases unneccessary overhead in cb_cmp; possibly introduce a cache)? */
 static int cell_serialize(
 		table_t *table,
 		char *target,
 		const HSQOBJECT *source,
 		int type,
-		bool try)
+		int mode)
 {
 	database_t *db = (database_t*)table->super.db;
 	SQInteger vint;
@@ -392,11 +401,11 @@ static int cell_serialize(
 				if(*vstr == 0)
 					rec = REC_NULL;
 				else {
-					if(try)
-						rec = bdb_store_try(db->store, NULL, vstr, strlen(vstr));
-					else
+					if(mode == SERIALIZE_GET)
 						rec = bdb_store_get(db->store, NULL, vstr, strlen(vstr), false);
-					if(rec == REC_NULL) {
+					else
+						rec = bdb_store_try(db->store, NULL, vstr, strlen(vstr));
+					if(rec == REC_NULL && mode != SERIALIZE_NULL) {
 						sq_poptop(vm);
 						if(errno == -ENOENT)
 							return GLA_NOTFOUND;
@@ -976,7 +985,7 @@ static int m_table_ldrl(
 
 	for(i = 0; i < kcols; i++)
 		if(self->coldata[i].state == CELL_EXTERNAL) { /* TODO CELL_EMPTY? */
-			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false); /* TODO current problem: if a string does not exist in store, what to do? create string in store (mind: read-only database)? return an error (mind: find lower should always work, maybe make an exception for store data)? set string record to 0 (mind: returned position would not neccessarily be the position where the row would be inserted, which violates one principle of find lower)? introduce a proper comparison for store items (mind: in many cases unneccessary overhead in cb_cmp; possibly introduce a cache)? */
+			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, SERIALIZE_NULL);
 			if(ret == GLA_NOTFOUND) {
 				self->editable_it.index = bdb_btree_size(self->btree, NULL);
 				return GLA_NOTFOUND;
@@ -1029,7 +1038,7 @@ static int m_table_ldru(
 
 	for(i = 0; i < kcols; i++)
 		if(self->coldata[i].state == CELL_EXTERNAL) { /* TODO CELL_EMPTY? */
-			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false); /* TODO current problem: if a string does not exist in store, what to do? create string in store (mind: read-only database)? return an error (mind: find lower should always work, maybe make an exception for store data)? set string record to 0 (mind: returned position would not neccessarily be the position where the row would be inserted, which violates one principle of find lower)? introduce a proper comparison for store items (mind: in many cases unneccessary overhead in cb_cmp; possibly introduce a cache)? */
+			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, SERIALIZE_NULL);
 			if(ret == GLA_NOTFOUND) {
 				self->editable_it.index = bdb_btree_size(self->btree, NULL);
 				return GLA_NOTFOUND;
@@ -1219,7 +1228,7 @@ static int m_table_str(
 
 	for(i = 0; i < colspec->n_total; i++) {
 		if(self->coldata[i].state == CELL_EXTERNAL) {
-			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false);
+			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, SERIALIZE_GET);
 			if(ret != 0)
 				return GLA_IO;
 		}
@@ -1246,7 +1255,7 @@ static int m_table_mkrk(
 
 	for(i = 0; i < colspec->n_total; i++) {
 		if(self->coldata[i].state == CELL_EXTERNAL) {
-			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false);
+			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, SERIALIZE_GET);
 			if(ret != 0)
 				return GLA_IO;
 		}
@@ -1274,7 +1283,7 @@ static int m_table_mkri(
 
 	for(i = 0; i < colspec->n_total; i++) {
 		if(self->coldata[i].state == CELL_EXTERNAL) {
-			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, false);
+			ret = cell_serialize(self, self->editable_row + self->coldata[i].offset, &self->coldata[i].object, colspec->column[i].type, SERIALIZE_GET);
 			if(ret != 0)
 				return GLA_IO;
 		}
