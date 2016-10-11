@@ -810,6 +810,19 @@ static SQInteger fn_debug_error(
 	return gla_rt_vmthrow(rt, message);
 }
 
+static SQInteger fn_now(
+		HSQUIRRELVM vm)
+{
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(rt->vm) != 1)
+		return gla_rt_vmthrow(rt, "invalid argument count");
+	
+	sq_pushinteger(rt->vm, apr_time_now());
+	return gla_rt_vmsuccess(rt, true);
+
+}
+
 static SQInteger fn_env_get(
 		HSQUIRRELVM vm)
 {
@@ -1394,6 +1407,12 @@ gla_rt_t *gla_rt_new(
 
 	sq_pushstring(rt->vm, "rt", -1);
 	sq_newtable(rt->vm);
+
+	sq_pushstring(rt->vm, "now", -1);
+	sq_newclosure(rt->vm, fn_now, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
 
 	sq_pushstring(rt->vm, "getenv", -1);
 	sq_newclosure(rt->vm, fn_env_get, 0);
