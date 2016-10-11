@@ -3,4 +3,5 @@ local cbridge = import("gla.util.cbridge")
 
 cbridge.StackExecuter(import("gla.util.StackExecuter"))
 cbridge.Executer(import("gla.util.Executer"))
+cbridge.Time(import("gla.util.Time"))
 

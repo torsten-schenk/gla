@@ -820,7 +820,6 @@ static SQInteger fn_now(
 	
 	sq_pushinteger(rt->vm, apr_time_now());
 	return gla_rt_vmsuccess(rt, true);
-
 }
 
 static SQInteger fn_env_get(

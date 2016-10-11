@@ -3,6 +3,7 @@
 
 #include "stackexec.h"
 #include "exec.h"
+#include "time.h"
 
 #include "module.h"
 
@@ -22,6 +23,10 @@ static int push_cbridge(
 
 	sq_pushstring(vm, "Executer", -1);
 	sq_newclosure(vm, gla_mod_util_exec_augment, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "Time", -1);
+	sq_newclosure(vm, gla_mod_util_time_augment, 0);
 	sq_newslot(vm, -3, false);
 
 	return GLA_SUCCESS;
