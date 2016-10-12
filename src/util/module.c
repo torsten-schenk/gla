@@ -4,6 +4,7 @@
 #include "stackexec.h"
 #include "exec.h"
 #include "time.h"
+#include "date.h"
 
 #include "module.h"
 
@@ -27,6 +28,10 @@ static int push_cbridge(
 
 	sq_pushstring(vm, "Time", -1);
 	sq_newclosure(vm, gla_mod_util_time_augment, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "Date", -1);
+	sq_newclosure(vm, gla_mod_util_date_augment, 0);
 	sq_newslot(vm, -3, false);
 
 	return GLA_SUCCESS;

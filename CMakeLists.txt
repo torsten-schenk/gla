@@ -9,6 +9,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unused-function")
 #include_directories(${GLIB_INCLUDES})
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/squirrel3/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/date")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
@@ -38,7 +39,7 @@ set(gla_SOURCES
 
 	storage/module.c storage/colspec.c storage/interface.c storage/memory.c storage/bdb.c
 	xml/module.c xml/saxparser.c
-	util/module.c util/stackexec.c util/exec.c util/time.c
+	util/module.c util/stackexec.c util/exec.c util/time.c util/date.c
 	io/module.c io/io.c io/buffer.c io/packpath.c io/hash.c
 	csv/module.c csv/cbparser.c
 	sqstdlib/module.c
@@ -77,9 +78,10 @@ macro(install_headers)
 endmacro()
 
 add_subdirectory(extern/squirrel3)
+add_subdirectory(extern/date)
 
 add_executable(gla src/main.c ${gla_SOURCE_FILES} ${gla_HEADER_FILES})
-target_link_libraries(gla squirrel sqstdlib ${APR_LIBS} ${APRUTIL_LIBRARIES} ${PCRE_LIBRARIES} ${BTREE_LIBRARIES} ${GRAVM_LIBRARIES} ${EXPAT_LIBRARIES} ${CSV_LIBRARIES} -ldb -ldl)
+target_link_libraries(gla squirrel sqstdlib date ${APR_LIBS} ${APRUTIL_LIBRARIES} ${PCRE_LIBRARIES} ${BTREE_LIBRARIES} ${GRAVM_LIBRARIES} ${EXPAT_LIBRARIES} ${CSV_LIBRARIES} -ldb -ldl)
 
 install(TARGETS gla DESTINATION /opt/gla/bin)
 install_headers(${gla_HEADER_FILES})

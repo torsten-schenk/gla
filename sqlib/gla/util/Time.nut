@@ -10,10 +10,16 @@ return class {
 	yday = 0 //0-365
 	isdst = 0
 	gmtoff = 0
+	shift = 0 //microseconds by which the corresponding Xgmt() values are shifted: togmt() returns usec since 1970 - shift; fromgmt() takes usec since 1970 + shift
 
 	//function togmt()
 	//function fromgmt(time)
+
+	constructor() {
+		throw "gla.io.Time currently not really working."
+	}
 	
+	//NOTE: does not reset 'shift'
 	function reset() {
 		usec = 0
 		sec = 0

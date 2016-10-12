@@ -1,4 +1,5 @@
 #include <apr_time.h>
+#include <date_interface.h>
 
 #include "../rt.h"
 
@@ -18,6 +19,7 @@ typedef struct {
 	HSQMEMBERHANDLE yday_member;
 	HSQMEMBERHANDLE isdst_member;
 	HSQMEMBERHANDLE gmtoff_member;
+	HSQMEMBERHANDLE shift_member;
 } rtdata_t;
 
 #define M_GET(I, N) \
@@ -48,9 +50,17 @@ static SQInteger fn_togmt(
 	apr_time_t time;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 	rtdata_t *rtdata = gla_rt_data_get(rt, RTDATA_TOKEN);
+	SQInteger shift;
 
 	if(sq_gettop(vm) != 1)
 		return gla_rt_vmthrow(rt, "Invalid argument count.");
+	else if(SQ_FAILED(sq_getbyhandle(vm, 1, &rtdata->shift_member)))
+		return gla_rt_vmthrow(rt, "Error getting value 'shift'.");
+	else if(SQ_FAILED(sq_getinteger(vm, -1, &shift))) {
+		sq_poptop(vm);
+		return gla_rt_vmthrow(rt, "Invalid value for 'shift'.");
+	}
+	sq_poptop(vm);
 
 	M_GET(1, usec);
 	M_GET(1, sec);
@@ -64,8 +74,8 @@ static SQInteger fn_togmt(
 	M_GET(1, isdst);
 	M_GET(1, gmtoff);
 
-	if(apr_time_exp_gmt_get(&time, &exp) != APR_SUCCESS)
-		return gla_rt_vmthrow(rt, "Invalid time given.");
+//	time = time_to_epoch(&exp) - shift;
+	time = 0; //TODO placeholder
 	sq_pushinteger(vm, time);
 	return gla_rt_vmsuccess(rt, true);
 }
@@ -77,13 +87,21 @@ static SQInteger fn_fromgmt(
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 	SQInteger time;
 	rtdata_t *rtdata = gla_rt_data_get(rt, RTDATA_TOKEN);
+	SQInteger shift;
 
 	if(sq_gettop(vm) != 2)
 		return gla_rt_vmthrow(rt, "Invalid argument count.");
 	else if(SQ_FAILED(sq_getinteger(vm, 2, &time)))
 		return gla_rt_vmthrow(rt, "Invalid argument: expected integer.");
-	if(apr_time_exp_gmt(&exp, time) != APR_SUCCESS)
-		return gla_rt_vmthrow(rt, "Invalid time given.\n");
+	else if(SQ_FAILED(sq_getbyhandle(vm, 1, &rtdata->shift_member)))
+		return gla_rt_vmthrow(rt, "Error getting value 'shift'.");
+	else if(SQ_FAILED(sq_getinteger(vm, -1, &shift))) {
+		sq_poptop(vm);
+		return gla_rt_vmthrow(rt, "Invalid value for 'shift'.");
+	}
+	sq_poptop(vm);
+	time += shift;
+//	time_from_epoch(time, &exp);
 
 	M_SET(1, usec);
 	M_SET(1, sec);
@@ -149,6 +167,9 @@ SQInteger gla_mod_util_time_augment(
 	sq_pushstring(vm, "gmtoff", -1);
 	if(SQ_FAILED(sq_getmemberhandle(vm, -2, &rtdata->gmtoff_member)))
 		return gla_rt_vmthrow(rt, "Error getting 'gmtoff' member.");
+	sq_pushstring(vm, "shift", -1);
+	if(SQ_FAILED(sq_getmemberhandle(vm, -2, &rtdata->shift_member)))
+		return gla_rt_vmthrow(rt, "Error getting 'shift' member.");
 	gla_rt_data_put(rt, RTDATA_TOKEN, rtdata);
 
 	return gla_rt_vmsuccess(rt, false);
