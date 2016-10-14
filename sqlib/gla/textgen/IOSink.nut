@@ -28,6 +28,7 @@ return class extends Super {
 
 	function end() {
 		_io.close()
+		_io = null
 	}
 
 	function text(text) {

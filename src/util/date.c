@@ -75,10 +75,17 @@ static SQInteger fn_fromepoch(
 SQInteger gla_mod_util_date_augment(
 		HSQUIRRELVM vm)
 {
+	date_time dt;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 	rtdata_t *rtdata = apr_pcalloc(rt->mpool, sizeof(rtdata_t));
 	if(rtdata == NULL)
 		return gla_rt_vmthrow(rt, "Not enough memory.");
+
+	dt.year = 2000;
+	dt.month = 1;
+	dt.day = 1;
+	if(date_to_epoch(&dt) != 730485)
+		return gla_rt_vmthrow(rt, "date_to_epoch() does not return expected test value.");
 
 	sq_pushstring(vm, "toepoch", -1);
 	sq_newclosure(vm, fn_toepoch, 0);
@@ -98,6 +105,8 @@ SQInteger gla_mod_util_date_augment(
 	if(SQ_FAILED(sq_getmemberhandle(vm, -2, &rtdata->day_member)))
 		return gla_rt_vmthrow(rt, "Error getting 'day' member.");
 	gla_rt_data_put(rt, RTDATA_TOKEN, rtdata);
+
+
 
 	return gla_rt_vmsuccess(rt, false);
 }

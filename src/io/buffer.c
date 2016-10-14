@@ -264,7 +264,6 @@ static SQInteger fn_ctor(
 static SQInteger fn_tostring(
 		HSQUIRRELVM vm)
 {
-	SQUserPointer up;
 	io_t *io;
 	int64_t size = 0;
 	cluster_t *cur;
@@ -274,9 +273,9 @@ static SQInteger fn_tostring(
 
 	if(sq_gettop(vm) > 1)
 		return gla_rt_vmthrow(rt, "Invalid argument count");
-	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
-		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
-	io = up;
+	io = (io_t*)gla_mod_io_io_get(rt, 1);
+	if(io == NULL)
+		return gla_rt_vmthrow(rt, "Error getting io instance");
 	if(io->tail == NULL)
 		sq_pushstring(vm, "", -1);
 	else {

@@ -982,7 +982,7 @@ static SQInteger fn_eval(
 	string_stream_t stream;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
 
-	if(sq_gettop(vm) != 2)
+	if(sq_gettop(vm) < 2 || sq_gettop(vm > 3))
 		return gla_rt_vmthrow(rt, "invalid argument count");
 	else if(SQ_FAILED(sq_getstring(vm, 2, &string)))
 		return gla_rt_vmthrow(rt, "invalid argument 1: expected string");

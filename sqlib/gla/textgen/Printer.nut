@@ -193,7 +193,7 @@ Printer = class {
 		sinkstack.push(sink)
 		sink.begin()
 		_commit(sinkstack)
-		sink.end()
+		return sink.end()
 	}
 
 	function _commit(sinkstack) {
