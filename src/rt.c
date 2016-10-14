@@ -981,21 +981,42 @@ static SQInteger fn_eval(
 	const SQChar *string;
 	string_stream_t stream;
 	gla_rt_t *rt = gla_rt_vmbegin(vm);
+	bool has_roottable = false;
 
-	if(sq_gettop(vm) < 2 || sq_gettop(vm > 3))
+	if(sq_gettop(vm) < 2 || sq_gettop(vm) > 3)
 		return gla_rt_vmthrow(rt, "invalid argument count");
 	else if(SQ_FAILED(sq_getstring(vm, 2, &string)))
 		return gla_rt_vmthrow(rt, "invalid argument 1: expected string");
+	else if(sq_gettop(vm) >= 3) {
+		has_roottable = true;
+		sq_pushroottable(vm);
+		sq_push(vm, 3);
+		sq_setroottable(vm);
+	}
 
 	memset(&stream, 0, sizeof(stream));
 	stream.buffer = string;
 	stream.size = strlen(string);
-	if(SQ_FAILED(sq_compile(vm, string_lexfeed, &stream, "<eval>", true)))
+	if(SQ_FAILED(sq_compile(vm, string_lexfeed, &stream, "<eval>", true))) {
+		if(has_roottable) {
+			sq_push(vm, 4);
+			sq_setroottable(vm);
+		}
 		return gla_rt_vmthrow(rt, "error compiling script");
+	}
 
-	sq_pushroottable(rt->vm);
-	if(SQ_FAILED(sq_call(rt->vm, 1, true, true))) /* TODO use arguments?; final bool args: 'retval' and 'vmthrowerror'  */
+	sq_pushroottable(vm);
+	if(SQ_FAILED(sq_call(rt->vm, 1, true, true))) { /* TODO use arguments?; final bool args: 'retval' and 'vmthrowerror'  */
+		if(has_roottable) {
+			sq_push(vm, 4);
+			sq_setroottable(vm);
+		}
 		return gla_rt_vmthrow(rt, "error running script"); /* TODO call sq_getlasterror() and throw message on top of stack */
+	}
+	if(has_roottable) {
+		sq_push(vm, 4);
+		sq_setroottable(vm);
+	}
 	return gla_rt_vmsuccess(rt, true);
 }
 
