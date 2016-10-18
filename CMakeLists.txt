@@ -35,7 +35,7 @@ include_directories(${GRAVM_INCLUDE_DIRS})
 find_package(EXPAT REQUIRED)
 
 set(gla_SOURCES
-	rt.c regex.c path.c store.c packreg.c entityreg.c mount.c io.c mnt_dir.c mnt_internal.c mnt_registry.c mnt_stdio.c
+	rt.c preproc.c regex.c path.c store.c packreg.c entityreg.c mount.c io.c mnt_dir.c mnt_internal.c mnt_registry.c mnt_stdio.c
 
 	storage/module.c storage/colspec.c storage/interface.c storage/memory.c storage/bdb.c
 	xml/module.c xml/saxparser.c

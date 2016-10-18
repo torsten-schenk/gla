@@ -31,7 +31,9 @@ return class {
 			kcols = kspec.len()
 			ncols += kspec.len()
 		}
-		else if(kspec != null)
+		else if(kspec == null)
+			kspec = []
+		else
 			throw "Invalid key column specification: expected either null, table or array of tables"
 
 		if(typeof(vspec) == "integer") {

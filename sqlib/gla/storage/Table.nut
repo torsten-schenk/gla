@@ -83,9 +83,15 @@ return class {
 	 * @param offset Column number of the first cell in @@param{cells}.
 	 */
 	function putAt(row, cells, offset = 0) {
+		::assert(_colspec.kcols == 0)
+		local dim
+		local exists
+		_c.ldri(row)
+		_putcells(offset, _colspec.vcols - offset, cells)
+		_c.str()
 	}
 
-	function put(key, value) {
+	function put(key, value = null) {
 		local dim
 		local exists
 

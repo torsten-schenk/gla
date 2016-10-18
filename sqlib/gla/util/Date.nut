@@ -24,6 +24,12 @@ return class {
 	}
 
 	function parse(string) {
+		if(string == null || string == "") {
+			year = 0
+			month = 0
+			day = 0
+			return true
+		}
 		local cap = regex.capture(string)
 		if(cap == null)
 			return false

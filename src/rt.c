@@ -29,6 +29,7 @@
 #include "entityreg.h"
 #include "packreg.h"
 #include "store.h"
+#include "preproc.h"
 #include "rt.h"
 
 /* TODO check for pool argument names. Rename to 'tmp' and 'pool' or 'tmp' and 'perm' or similar */
@@ -234,7 +235,7 @@ static SQInteger file_lexfeed(
 			return 0;
 		else {
 			/* TODO return what exactly here? 0 for end or negative value for error? Also rethink fprintf */
-			fprintf(stderr, "error reading from script file");
+			fprintf(stderr, "error reading from script file\n");
 			return SQ_ERROR;
 		}
 	}
