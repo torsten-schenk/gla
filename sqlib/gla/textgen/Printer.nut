@@ -21,39 +21,34 @@ local Cluster = class {
 	fill = 0
 
 	constructor(clusterSize) {
-		data = array(clusterSize)
-		types = array(clusterSize)
+		data = ::array(clusterSize)
+		types = ::array(clusterSize)
 	}
 }
 
+local FragmentData = class {
+	type = null
+	data = null
+	constructor(type, data) {
+		this.type = type
+		this.data = data
+	}
+}
 local Printer
 
 Printer = class {
-	_firstCluster = null
-	_lastCluster = null
-	_clusterSize = null
+	_fragments = null
 
 	constructor(clusterSize = CLUSTER_SIZE) {
-		_clusterSize = clusterSize
+		_fragments = []
 	}
 
 	function clear() {
-		_firstCluster = null
-		_lastCluster = null
+		_fragments = []
 	}
 
 	function _append(type, data = null) {
-		if(_lastCluster == null) {
-			_lastCluster = Cluster(_clusterSize)
-			_firstCluster = _lastCluster
-		}
-		else if(_lastCluster.fill == _clusterSize) {
-			_lastCluster.next = Cluster(_clusterSize)
-			_lastCluster = _lastCluster.next
-		}
-		_lastCluster.types[_lastCluster.fill] = type
-		_lastCluster.data[_lastCluster.fill] = data
-		_lastCluster.fill++
+		_fragments.push(FragmentData(type, data))
 	}
 
 	function pn(text = null) {
@@ -197,38 +192,37 @@ Printer = class {
 	}
 
 	function _commit(sinkstack) {
-		for(local cluster = _firstCluster; cluster != null; cluster = cluster.next)
-			for(local i = 0; i < cluster.fill; i++) {
-				local type = cluster.types[i]
-				local data = cluster.data[i]
-				switch(type) {
-					case Fragment.Text:
-						sinkstack.top().text(data)
-						break
-					case Fragment.Indent:
-						sinkstack.top().indent(data)
-						break
-					case Fragment.Newline:
-						sinkstack.top().newline()
-						break
-					case Fragment.Command:
-						sinkstack.top().command(data)
-						break
-					case Fragment.Embed:
-						data._commit(sinkstack)
-						break
-					case Fragment.Begin:
-						data.begin(sinkstack.top())
-						sinkstack.push(data)
-						break
-					case Fragment.End:
-						sinkstack.top().end()
-						sinkstack.pop()
-						break
-					default:
-						assert(false)
-				}
+		foreach(v in _fragments) {
+			local type = v.type
+			local data = v.data
+			switch(type) {
+				case Fragment.Text:
+					sinkstack.top().text(data)
+					break
+				case Fragment.Indent:
+					sinkstack.top().indent(data)
+					break
+				case Fragment.Newline:
+					sinkstack.top().newline()
+					break
+				case Fragment.Command:
+					sinkstack.top().command(data)
+					break
+				case Fragment.Embed:
+					data._commit(sinkstack)
+					break
+				case Fragment.Begin:
+					data.begin(sinkstack.top())
+					sinkstack.push(data)
+					break
+				case Fragment.End:
+					sinkstack.top().end()
+					sinkstack.pop()
+					break
+				default:
+					assert(false)
 			}
+		}
 	}
 }
 

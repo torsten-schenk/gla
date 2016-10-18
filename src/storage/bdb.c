@@ -328,7 +328,6 @@ static int cell_deserialize(
 			sq_getstackobj(vm, -1, target);
 			sq_poptop(vm);
 			break;
-			break;
 		case COL_NULL:
 			sq_pushnull(vm);
 			sq_getstackobj(vm, -1, target);

@@ -1003,6 +1003,9 @@ static SQInteger fn_eval(
 			sq_push(vm, 4);
 			sq_setroottable(vm);
 		}
+		printf("-------------------------------\n");
+		printf("%s\n", string);
+		printf("-------------------------------\n");
 		return gla_rt_vmthrow(rt, "error compiling script");
 	}
 
