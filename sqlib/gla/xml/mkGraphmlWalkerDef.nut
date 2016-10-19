@@ -119,7 +119,7 @@ local EdgeParser = class {
 	}
 }
 
-GraphmlLoader.simpleLoad(rt.arg[0], NodeParser, EdgeParser, false)
+GraphmlLoader.simpleLoad(rt.arg[0], NodeParser, EdgeParser, null, false)
 
 if(root == null)
 	throw "missing root node"

@@ -22,6 +22,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 	NodeParser = null
 	EdgeParser = null
 
+	nodeParser = null
+	edgeParser = null
+
 	constructor(reader, NodeParser, EdgeParser) {
 		XmlWalker.constructor.call(this, reader)
 		this.NodeParser = NodeParser
@@ -33,11 +36,13 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 			if(walker.NodeParser == null)
 				context.nodeParser <- null
 			else
-				context.nodeParser <- walker.NodeParser()
+				context.nodeParser <- walker.NodeParser(context)
 			if(walker.EdgeParser == null)
 				context.edgeParser <- null
 			else
-				context.edgeParser <- walker.EdgeParser()
+				context.edgeParser <- walker.EdgeParser(context)
+			walker.edgeParser = context.edgeParser
+			walker.nodeParser = context.nodeParser
 			context.keys <- { node = null, edge = null }
 		}
 		function run() {
@@ -707,7 +712,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 		}
 	}
 
-	static function simpleLoad(graphml, NodeParser, EdgeParser, dotrim = true) {
+	static function simpleLoad(graphml, NodeParser, EdgeParser, context = null, dotrim = true) {
 		local Database = import("gla.storage.memory.Database")
 		local ModelParser = import("gla.xml.model.Parser")
 		local ModelReader = import("gla.goprr.storage.ModelReader")
@@ -722,7 +727,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 		parser.parse(path)
 
 		local loader = Base(ModelReader(db), NodeParser, EdgeParser)
+		loader.basecontext = context
 		StackExecuter(loader).execute()
+		return loader
 	}
 
 	static function canonicalizeEdge(data, source, target) {

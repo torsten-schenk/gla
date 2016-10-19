@@ -20,5 +20,5 @@ if(rt.arg.len() != 2)
 local path = PackagePath(rt.arg[0], true)
 path.extdefault("graphml")
 
-Loader.simpleLoad(path, NodeParser, EdgeParser, false)
+Loader.simpleLoad(path, NodeParser, EdgeParser, null, false)
 
