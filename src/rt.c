@@ -1896,7 +1896,7 @@ int gla_rt_import(
 	int (*mod_push)(gla_rt_t*, apr_pool_t*);
 	const char *mod_file;
 
-	if(orgpath == NULL || gla_path_type(orgpath) != GLA_PATH_ENTITY)
+	if(orgpath == NULL)
 		return GLA_INVALID_PATH_TYPE;
 	else if(orgpath->extension != NULL) {
 		LOG_ERROR("error importing entity: extension given but not allowed for import");
@@ -1905,7 +1905,10 @@ int gla_rt_import(
 
 	path = *orgpath;
 	packpath = *orgpath;
-	gla_path_package(&packpath);
+	if(gla_path_type(&path) == GLA_PATH_PACKAGE)
+		path.entity = "_package";
+	else
+		gla_path_package(&packpath);
 	ret = pack_init(rt, &packpath, pool);
 	if(ret != GLA_SUCCESS) {
 		LOG_DEBUG("error initializing package");
