@@ -132,6 +132,7 @@ static int io_write(
 				self->wcluster->next->offset = self->wcluster->offset + self->cluster_size;
 			}
 			self->wcluster = self->wcluster->next;
+			self->tailfill = 0;
 			self->woff = 0;
 		}
 	}
@@ -261,6 +262,70 @@ static SQInteger fn_ctor(
 	return gla_rt_vmsuccess(rt, false);
 }
 
+static SQInteger fn_hexdump(
+		HSQUIRRELVM vm)
+{
+	int64_t size;
+	int64_t offset = 0;
+	int64_t i;
+	int k;
+	cluster_t *cur;
+	io_t *io;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+	unsigned char line[16];
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	io = (io_t*)gla_mod_io_io_get(rt, 1);
+	if(io == NULL)
+		return gla_rt_vmthrow(rt, "Error getting io instance");
+	if(io->tail != NULL) {
+		for(cur = io->head; cur != NULL; cur = cur->next) {
+			if(cur->next == NULL)
+				size = io->tailfill;
+			else
+				size = io->cluster_size;
+			for(i = 0; i < size; i++) {
+				if(offset % 16 == 0 && offset > 0) {
+					printf("%08x  ", (unsigned int)(offset - 16));
+					for(k = 0; k < 8; k++)
+						printf("%02x ", line[k]);
+					printf(" ");
+					for(k = 8; k < 16; k++)
+						printf("%02x ", line[k]);
+					printf("  ");
+					for(k = 0; k < 8; k++)
+						printf("%c", (line[k] <= 0x20 || line[k] > 0x7f) ? '.' : line[k]);
+					printf(" ");
+					for(k = 8; k < 16; k++)
+						printf("%c", (line[k] <= 0x20 || line[k] >= 0x7f) ? '.' : line[k]);
+					printf("\n");
+				}
+				line[offset % 16] = cur->data[i];
+				offset++;
+			}
+		}
+		i = (offset - 1) % 16;
+		printf("%08x  ", (unsigned int)(offset - i - 1));
+		for(k = 0; k < 8 && k <= i; k++)
+			printf("%02x ", line[k]);
+		printf(" ");
+		for(k = 8; k < 16 && k <= i; k++)
+			printf("%02x ", line[k]);
+		for(k = i; k < 15; k++)
+			printf("   ");
+		printf("  ");
+		for(k = 0; k < 8 && k <= i; k++)
+			printf("%c", (line[k] <= 0x20 || line[k] > 0x7f) ? '.' : line[k]);
+		printf(" ");
+		for(k = 8; k < 16 && k <= i; k++)
+			printf("%c", (line[k] <= 0x20 || line[k] >= 0x7f) ? '.' : line[k]);
+		printf("\n");
+
+	}
+	return gla_rt_vmsuccess(rt, false);
+}
+
 static SQInteger fn_tostring(
 		HSQUIRRELVM vm)
 {
@@ -302,6 +367,10 @@ SQInteger gla_mod_io_buffer_augment(
 
 	sq_pushstring(vm, "constructor", -1);
 	sq_newclosure(vm, fn_ctor, 0);
+	sq_newslot(vm, 2, false);
+
+	sq_pushstring(vm, "hexdump", -1);
+	sq_newclosure(vm, fn_hexdump, 0);
 	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "_tostring", -1);

@@ -8,7 +8,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unused-function")
 #find_package(GLIB REQUIRED)
 #include_directories(${GLIB_INCLUDES})
 
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/squirrel3/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/squirrel3.1/include")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/date")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -77,7 +77,7 @@ macro(install_headers)
 	#	install(FILES src/ieg-db.h DESTINATION /opt/ieg/include)
 endmacro()
 
-add_subdirectory(extern/squirrel3)
+add_subdirectory(extern/squirrel3.1)
 add_subdirectory(extern/date)
 
 add_executable(gla src/main.c ${gla_SOURCE_FILES} ${gla_HEADER_FILES})
