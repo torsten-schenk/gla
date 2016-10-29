@@ -515,6 +515,20 @@ static int m_table_mkri(
 	return GLA_SUCCESS;
 }
 
+static int m_table_rma(
+		abstract_table_t *self_,
+		apr_pool_t *tmp)
+{
+	int size;
+	table_t *self = (table_t*)self_;
+
+	assert(self->editable_it.element == NULL);
+	size = btree_size(self->btree);
+	btree_clear(self->btree);
+
+	return size;
+}
+
 static int m_table_rmr(
 		abstract_table_t *self_,
 		int row,
@@ -616,6 +630,7 @@ static methods_table_t table_methods = {
 	.str = m_table_str,
 	.mkrk = m_table_mkrk,
 	.mkri = m_table_mkri,
+	.rma = m_table_rma,
 	.rmr = m_table_rmr,
 	.clr = m_table_clr,
 	.ptc = m_table_ptc,

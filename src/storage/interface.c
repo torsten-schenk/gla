@@ -567,6 +567,37 @@ static SQInteger fnm_table_mkri(
 	return gla_rt_vmsuccess(rt, false);
 }
 
+static SQInteger fnm_table_rma(
+		HSQUIRRELVM vm)
+{
+	int ret;
+	SQUserPointer up;
+	abstract_table_t *table;
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 1)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	table = up;
+	assert(table->meta->rt != NULL);
+	if(table->db == NULL)
+		return gla_rt_vmthrow(rt, "Table already closed");
+
+	if(table->meta->table_methods->rma == NULL) {
+		ret = table->meta->table_methods->sz(table, rt->mpstack);
+		if(ret < 0)
+			return gla_rt_vmthrow(rt, "Error in 'rma'");
+		ret = table->meta->table_methods->rmr(table, 0, ret, rt->mpstack);
+	}
+	else
+		ret = table->meta->table_methods->rma(table, rt->mpstack);
+	if(ret < 0)
+		return gla_rt_vmthrow(rt, "Error in 'rma'");
+	sq_pushinteger(vm, ret);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fnm_table_rmr(
 		HSQUIRRELVM vm)
 {
@@ -1154,6 +1185,10 @@ int gla_mod_storage_table_cbridge(
 
 	sq_pushstring(vm, "mkri", -1);
 	sq_newclosure(vm, fnm_table_mkri, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "rma", -1);
+	sq_newclosure(vm, fnm_table_rma, 0);
 	sq_newslot(vm, -3, false);
 
 	sq_pushstring(vm, "rmr", -1);

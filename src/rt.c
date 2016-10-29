@@ -19,6 +19,7 @@
 #include "util/module.h"
 #include "io/module.h"
 #include "sqstdlib/module.h"
+#include "locale/module.h"
 
 #include "log.h"
 #include "_mount.h"
@@ -1248,6 +1249,13 @@ static int mnt_internal_setup(
 	if(ret != GLA_SUCCESS)
 		return ret;
 	ret = gla_mod_sqstdlib_register(rt, &path, pool, tmp);
+	if(ret != GLA_SUCCESS)
+		return ret;
+
+	ret = gla_path_parse_package(&path, "gla.locale", tmp);
+	if(ret != GLA_SUCCESS)
+		return ret;
+	ret = gla_mod_locale_register(rt, &path, pool, tmp);
 	if(ret != GLA_SUCCESS)
 		return ret;
 

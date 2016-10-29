@@ -16,6 +16,7 @@ return class {
 
 	//function fromepoch(offset) 'offset': days since 0000-01-01
 	//function toepoch(): days since 0000-01-01
+	//function today()
 
 	function reset() {
 		year = 0

@@ -1001,7 +1001,7 @@ static int m_table_ldrl(
 	element = self->editable_it.element;
 	if(element != NULL) {
 		match = true;
-		for(i = 0; i < colspec->n_key; i++) {
+		for(i = 0; i < kcols; i++) {
 			cell_deserialize(self, &obj, element + self->coldata[i].offset, colspec->column[i].type);
 			if(memcmp(&self->coldata[i].object, &obj, sizeof(HSQOBJECT)) != 0) {
 				match = false;

@@ -268,7 +268,7 @@ return class {
 	}
 
 	function clear() {
-		return _c.rmr(0, _c.sz())
+		return _c.rma()
 	}
 
 	function removeAt(row, n = 1) {
@@ -353,12 +353,15 @@ return class {
 		return result
 	}
 
-	function lower(key) {
+	function lower(key, matching = false) {
 		local result
 		local dim
 
 		dim = _putcells(0, _colspec.kcols, key)
-		_c.ldrl(dim)
+		if(!_c.ldrl(dim) && matching) {
+			_c.clr()
+			return null
+		}
 		result = _c.it()
 		_c.clr()
 		result._c = _c

@@ -1,3 +1,5 @@
+#include <cstring>
+#include <ctime>
 #include <iostream>
 #include "date.h"
 #include "date_interface.h"
@@ -19,6 +21,18 @@ extern "C" {
 		dt->year = static_cast<int>(tmp.year());
 		dt->month = static_cast<unsigned int>(tmp.month());
 		dt->day = static_cast<unsigned int>(tmp.day());
+	}
+
+	int64_t date_today(date_time *dt) {
+		time_t t = time(0);
+		struct tm *now = localtime(&t);
+		date_time tmp;
+		tmp.year = now->tm_year + 1900;
+		tmp.month = now->tm_mon + 1;
+		tmp.day = now->tm_mday;
+		if(dt != nullptr)
+			memcpy(dt, &tmp, sizeof(date_time));
+		return date_to_epoch(&tmp);
 	}
 
 /*	int64_t time_to_epoch(const apr_time_exp_t *exp) { //TODO fix or leave it and use something else for time
@@ -52,6 +66,14 @@ extern "C" {
 		exp->tm_usec = toffset;
 	}*/
 }
+
+/*int main() {
+	date_time dt;
+	int64_t today = date_today(&dt);
+	printf("TODAY: %d\n", (int)today);
+
+	return 0;
+}*/
 
 /*int main() {
 	apr_time_exp_t exp;

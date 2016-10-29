@@ -55,6 +55,8 @@ struct methods_table {
 	int (*mkrk)(abstract_table_t *self, apr_pool_t *tmp);
 	/* Create new row by index using the current edit row. Do not clear edit row. */
 	int (*mkri)(abstract_table_t *self, int row, apr_pool_t *tmp);
+	/* Remove all rows. Returns number of rows removed. */
+	int (*rma)(abstract_table_t *self, apr_pool_t *tmp);
 	/* Remove rows. 'row': first row to remove; 'n': number of rows to remove. Returns number of rows removed. */
 	int (*rmr)(abstract_table_t *self, int row, int n, apr_pool_t *tmp);
 	/* Clear edit row. Changes are not committed. */

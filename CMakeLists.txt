@@ -43,6 +43,7 @@ set(gla_SOURCES
 	io/module.c io/io.c io/buffer.c io/packpath.c io/hash.c
 	csv/module.c csv/cbparser.c
 	sqstdlib/module.c
+	locale/module.c
 )
 
 set(gla_HEADERS
