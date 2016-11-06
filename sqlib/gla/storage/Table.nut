@@ -332,6 +332,24 @@ return class {
 		return result
 	}
 
+	function groups(nkey) {
+		::assert(nkey <= _colspec.kcols)
+		::assert(nkey > 0)
+		local result
+		
+		_c.ldrb()
+		result = _c.it()
+		_c.clr()
+		result._c = _c
+		result._colspec = _colspec
+		result.end = 0 //will becom result.begin after groupNext()
+		result.groupoff = 0
+		result.grouplen = nkey
+		result._groupkey = ::array(nkey)
+		result.groupNext()
+		return result
+	}
+
 	function group(key) {
 		local result
 		local dim

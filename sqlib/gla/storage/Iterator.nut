@@ -3,8 +3,11 @@
 return class {
 	_c = null
 	_colspec = null
+	_groupkey = null
 
 	/* May be used read-only by external code */
+	groupoff = 0
+	grouplen = 0
 	begin = null //index of iteration begin
 	end = null //index of iteration end
 	index = null
@@ -16,6 +19,54 @@ return class {
 			return 1;
 		else if(index == o.index)
 			return 0;
+	}
+
+	function subgroups(nrkey) {
+		assert(nrkey + grouplen <= _colspec.kcols)
+		assert(nrkey >= 0)
+		local dim
+		local sub = _c.itdup(this)
+		sub._c = _c
+		sub._colspec = _colspec
+		sub.groupoff = grouplen
+		sub.grouplen = nrkey + grouplen
+		sub._groupkey = array(sub.grouplen)
+		for(local i = 0; i < grouplen; i++)
+			sub._groupkey[i] = _groupkey[i]
+
+		dim = _putcells(0, sub.grouplen, sub._groupkey)
+		_c.ldrl(dim)
+		sub.end = _c.idx() //will become sub.begin() after groupNext()
+		_c.clr()
+		sub.groupNext()
+		return sub
+/*
+		for(local i = grouplen; i < sub.grouplen; i++)
+			sub._groupkey[i] = cur[i]
+		dim = _putcells(0, sub.grouplen, sub._groupkey)
+		_c.ldrl(dim)
+		sub.begin = _c.idx()
+		_c.clr()
+		dim = _putcells(0, sub.grouplen, sub._groupkey)
+		_c.ldru(dim)
+		sub.end = _c.idx()
+		_c.clr()*/
+	}
+
+	function groupNext() {
+		local dim
+		begin = end
+		index = begin
+		if(begin == _c.sz())
+			return
+		_c.ldri(index)
+		_c.itupd(this)
+		for(local i = groupoff; i < grouplen; i++)
+			_groupkey[i] = _c.gtc(i)
+		_c.clr()
+		dim = _putcells(0, grouplen, _groupkey)
+		_c.ldru(dim)
+		end = _c.idx()
 	}
 
 	function total() {
