@@ -343,6 +343,8 @@ return class {
 		result._c = _c
 		result._colspec = _colspec
 		result.end = 0 //will becom result.begin after groupNext()
+		result.groupbegin = 0
+		result.groupend = _c.sz()
 		result.groupoff = 0
 		result.grouplen = nkey
 		result._groupkey = ::array(nkey)

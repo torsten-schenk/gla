@@ -8,6 +8,8 @@ return class {
 	/* May be used read-only by external code */
 	groupoff = 0
 	grouplen = 0
+	groupbegin = null
+	groupend = null
 	begin = null //index of iteration begin
 	end = null //index of iteration end
 	index = null
@@ -30,10 +32,16 @@ return class {
 		sub._colspec = _colspec
 		sub.groupoff = grouplen
 		sub.grouplen = nrkey + grouplen
+		sub.groupbegin = begin
+		sub.groupend = end
 		sub._groupkey = array(sub.grouplen)
 		for(local i = 0; i < grouplen; i++)
 			sub._groupkey[i] = _groupkey[i]
 
+		_c.itldr(this)
+		for(local i = grouplen; i < sub.grouplen; i++)
+			sub._groupkey[i] = _c.gtc(i)
+		_c.clr()
 		dim = _putcells(0, sub.grouplen, sub._groupkey)
 		_c.ldrl(dim)
 		sub.end = _c.idx() //will become sub.begin() after groupNext()
@@ -57,7 +65,7 @@ return class {
 		local dim
 		begin = end
 		index = begin
-		if(begin == _c.sz())
+		if(begin == groupend)
 			return
 		_c.ldri(index)
 		_c.itupd(this)
