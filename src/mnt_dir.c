@@ -26,6 +26,9 @@ typedef struct {
 	gla_io_t super;
 
 	apr_file_t *file;
+
+	int64_t woff;
+	int64_t roff;
 } io_t;
 
 typedef struct {
@@ -54,6 +57,8 @@ static gla_meta_mount_t mnt_meta = {
 };
 
 static gla_meta_io_t io_meta = {
+	.rtell = io_rtell,
+	.wtell = io_wtell,
 	.read = io_read,
 	.write = io_write,
 	.flush = io_flush,
@@ -447,6 +452,8 @@ static void io_close(
 	if(self->file != NULL) {
 		apr_file_close(self->file);
 		self->file = NULL;
+		self->woff = -1;
+		self->roff = -1;
 	}
 }
 
@@ -464,6 +471,8 @@ static int io_read(
 		self->super.rstatus = GLA_END;
 	else if(ret != APR_SUCCESS)
 		self->super.rstatus = GLA_IO;
+	else
+		self->roff += bytes;
 	return br;
 }
 
@@ -481,8 +490,25 @@ static int io_write(
 		self->super.wstatus = GLA_END;
 	else if(ret != APR_SUCCESS)
 		self->super.wstatus = GLA_IO;
+	else
+		self->woff += bytes;
 	return bw;
 }
+
+static int64_t io_rtell(
+		gla_io_t *self_)
+{
+	io_t *self = (io_t*)self_;
+	return self->roff;
+}
+
+static int64_t io_wtell(
+		gla_io_t *self_)
+{
+	io_t *self = (io_t*)self_;
+	return self->woff;
+}
+
 
 static int io_flush(
 		gla_io_t *self_)
