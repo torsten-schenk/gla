@@ -16,6 +16,7 @@
 #include "storage/module.h"
 #include "xml/module.h"
 #include "csv/module.h"
+#include "string/module.h"
 #include "util/module.h"
 #include "io/module.h"
 #include "sqstdlib/module.h"
@@ -1241,6 +1242,13 @@ static int mnt_internal_setup(
 	if(ret != GLA_SUCCESS)
 		return ret;
 	ret = gla_mod_csv_register(rt, &path, pool, tmp);
+	if(ret != GLA_SUCCESS)
+		return ret;
+
+	ret = gla_path_parse_package(&path, "gla.string", tmp);
+	if(ret != GLA_SUCCESS)
+		return ret;
+	ret = gla_mod_string_register(rt, &path, pool, tmp);
 	if(ret != GLA_SUCCESS)
 		return ret;
 
