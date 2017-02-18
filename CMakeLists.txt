@@ -13,6 +13,9 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/date")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+find_package(Yaml REQUIRED)
+include_directories(${YAML_INCLUDE_DIR})
+
 find_package(Csv REQUIRED)
 include_directories(${CSV_INCLUDE_DIR})
 
@@ -44,6 +47,7 @@ set(gla_SOURCES
 	csv/module.c csv/cbparser.c
 	sqstdlib/module.c
 	string/module.c string/unicode.c
+	yaml/module.c yaml/cbparser.c
 )
 
 set(gla_HEADERS
@@ -82,7 +86,7 @@ add_subdirectory(extern/squirrel3.1)
 add_subdirectory(extern/date)
 
 add_executable(gla src/main.c ${gla_SOURCE_FILES} ${gla_HEADER_FILES})
-target_link_libraries(gla squirrel sqstdlib date ${APR_LIBS} ${APRUTIL_LIBRARIES} ${PCRE_LIBRARIES} ${BTREE_LIBRARIES} ${GRAVM_LIBRARIES} ${EXPAT_LIBRARIES} ${CSV_LIBRARIES} -ldb -ldl)
+target_link_libraries(gla squirrel sqstdlib date ${APR_LIBS} ${APRUTIL_LIBRARIES} ${PCRE_LIBRARIES} ${BTREE_LIBRARIES} ${GRAVM_LIBRARIES} ${EXPAT_LIBRARIES} ${CSV_LIBRARIES} ${YAML_LIBRARIES} -ldb -ldl)
 
 install(TARGETS gla DESTINATION /opt/gla/bin)
 install_headers(${gla_HEADER_FILES})
