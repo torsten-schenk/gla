@@ -25,6 +25,6 @@ return class {
 	//function alias()
 	//function anchor()
 	//function tag()
-	//function scalar()
+	//function scalar(value, len, style)
 }
 

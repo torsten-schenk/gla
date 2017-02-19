@@ -5,6 +5,7 @@
 #include "cbparser.h"
 
 enum {
+	TOKEN_EMPTY,
 	TOKEN_STREAM_START,
 	TOKEN_STREAM_END,
 	TOKEN_VERSION_DIRECTIVE,
@@ -206,6 +207,7 @@ struct {
 	int index;
 	int (*handler)(gla_rt_t*, HSQOBJECT*, yaml_token_t*);
 } tokendef[] = {
+	{ YAML_NO_TOKEN, "empty", TOKEN_EMPTY, handle_noargs },
 	{ YAML_STREAM_START_TOKEN, "streamStart", TOKEN_STREAM_START, handle_noargs },
 	{ YAML_STREAM_END_TOKEN, "streamEnd", TOKEN_STREAM_END, handle_noargs },
 	{ YAML_VERSION_DIRECTIVE_TOKEN, "versionDirective", TOKEN_VERSION_DIRECTIVE, handle_version_directive },
