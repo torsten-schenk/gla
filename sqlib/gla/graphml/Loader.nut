@@ -43,7 +43,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				context.edgeParser <- walker.EdgeParser(context)
 			walker.edgeParser = context.edgeParser
 			walker.nodeParser = context.nodeParser
-			context.keys <- { node = null, edge = null }
+			context.keys <- { node = null, edge = null, attributes = {} }
 		}
 		function run() {
 			if(context.keys.node == null)
@@ -70,6 +70,8 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				else
 					context.keys.edge = attribute("id")
 			}
+			else if(attribute("attr.name") != null && attribute("attr.type") != null)
+				context.keys.attributes[attribute("id")] <- { name = attribute("attr.name"), type = attribute("attr.type"), element = attribute("attr.for") }
 		}
 	}
 	Graph = class extends XmlWalker.Element {
@@ -118,6 +120,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 					w = null,
 					h = null
 				}
+				attributeData = {}
 			}
 			if(context.node.id == null)
 				throw "missing node id"
@@ -146,6 +149,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 					id = attribute("target"),
 					multiplicity = null
 				}
+				attributeData = {}
 			}
 		}
 		function leave() {
@@ -155,12 +159,28 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 	}
 	NodeData = class extends XmlWalker.Element {
 		function enter() {
-			return attribute("key") == context.keys.node
+			if(attribute("key") == context.keys.node)
+				return true
+			else if(attribute("key") in context.keys.attributes) {
+				local name = context.keys.attributes[attribute("key")].name
+				context.node.attributeData[name] <- text()
+				return false
+			}
+			else
+				return false
 		}
 	}
 	EdgeData = class extends XmlWalker.Element {
 		function enter() {
-			return attribute("key") == context.keys.edge
+			if(attribute("key") == context.keys.edge)
+				return true
+			else if(attribute("key") in context.keys.attributes) {
+				local name = context.keys.attributes[attribute("key")].name
+				context.node.attributeData[name] <- text()
+				return false
+			}
+			else
+				return false
 		}
 	}
 	GenericNode = class extends XmlWalker.Element {

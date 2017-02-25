@@ -65,6 +65,10 @@ return class extends StackTask {
 				return null
 		}
 
+		function text() {
+			return firsttext
+		}
+
 		function object() { //return object id of current element
 			return context._object
 		}
