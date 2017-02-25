@@ -94,7 +94,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 						adhoc = null,
 						closed =null
 					}
-					event = {
+					ev = {
 						type = null,
 						flow = null,
 						characteristic = null
@@ -297,6 +297,10 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 							else if(value == "EVENT_CHARACTERISTIC_INTERMEDIATE_BOUNDARY_INTERRUPTING") {
 								context.node.bpmn.ev.flow = "intermediate"
 								context.node.bpmn.ev.characteristic = "boundaryInterrupting"
+							}
+							else if(value = "EVENT_CHARACTERISTIC_INTERMEDIATE_CATCHING") {
+								context.node.bpmn.ev.flow = "intermediate"
+								context.node.bpmn.ev.characteristic = "catching"
 							}
 							else
 								throw "unknown bpmn event characteristic: " + value
