@@ -135,6 +135,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				id = attribute("id"),
 				type = null,
 				nameLabel = null,
+				lineWidth = null,
 				source = {
 					type = null,
 					id = attribute("source"),
@@ -682,6 +683,11 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 								throw "unknown bpmn connection type: '" + name + "'"
 							break
 					}
+		}
+	}
+	LineStyle = class extends XmlWalker.Element {
+		function run() {
+			context.edge.lineWidth = attribute("width")
 		}
 	}
 	Arrows = class extends XmlWalker.Element {

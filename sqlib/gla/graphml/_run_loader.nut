@@ -41,6 +41,7 @@ return {
 		{ classname = "GenericEdge" }
 		null
 		{ classname = "EdgeStyle" }
+		{ classname = "LineStyle" }
 	]
 	edges = [
 		{
@@ -335,6 +336,12 @@ return {
 			target = 38
 			type = Walker.CHILDREN
 			element = "Property"
+		}
+		{
+			source = 8
+			target = 39
+			type = Walker.CHILDREN
+			element = "LineStyle"
 		}
 	]
 }
