@@ -687,7 +687,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 	}
 	LineStyle = class extends XmlWalker.Element {
 		function run() {
-			context.edge.lineWidth = attribute("width")
+			context.edge.lineWidth = attribute("width").tofloat()
 		}
 	}
 	Arrows = class extends XmlWalker.Element {
