@@ -14,7 +14,7 @@ return {
 		{ classname = "EdgeLabel" }
 		{ classname = "Key" }
 		{ classname = "Arrows" }
-		{ classname = "NoteNode" }
+		{ classname = "UmlNoteNode" }
 		null
 		{ classname = "Shape" }
 		{ classname = "UmlClassNode" }
@@ -42,7 +42,6 @@ return {
 		null
 		{ classname = "EdgeStyle" }
 		{ classname = "LineStyle" }
-		{ classname = "NoteLabel" }
 	]
 	edges = [
 		{
@@ -346,9 +345,8 @@ return {
 		}
 		{
 			source = 12
-			target = 40
-			type = Walker.CHILDREN
-			element = "NoteLabel"
+			target = 21
+			type = Walker.NULL
 		}
 	]
 }

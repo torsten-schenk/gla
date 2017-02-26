@@ -11,7 +11,7 @@
 11 EdgeLabel
 12 Key
 13 Arrows
-14 NoteNode
+14 UmlNoteNode
 15 
 16 Shape
 17 UmlClassNode
@@ -39,7 +39,6 @@
 39 
 40 EdgeStyle
 41 LineStyle
-42 NoteLabel
 #
 2 3 [1] graph: Walker
 3 4 [0] node: Walker
@@ -91,4 +90,4 @@
 38 10
 39 40 Property: Walker
 10 41 LineStyle: Walker
-14 42 NoteLabel: Walker
+14 23

@@ -161,9 +161,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 		function enter() {
 			if(attribute("key") == context.keys.node)
 				return true
-			else if(attribute("key") in context.keys.attributes) {
+			else if((attribute("key") in context.keys.attributes) && firsttext != null && firsttext.len() > 0) {
 				local name = context.keys.attributes[attribute("key")].name
-				context.node.attributeData[name] <- text()
+				context.node.attributeData[name] <- firsttext
 				return false
 			}
 			else
@@ -174,9 +174,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 		function enter() {
 			if(attribute("key") == context.keys.edge)
 				return true
-			else if(attribute("key") in context.keys.attributes) {
+			else if((attribute("key") in context.keys.attributes) && firsttext != null && firsttext.len() > 0) {
 				local name = context.keys.attributes[attribute("key")].name
-				context.edge.attributeData[name] <- text()
+				context.edge.attributeData[name] <- firsttext
 				return false
 			}
 			else
@@ -370,14 +370,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 			}
 		}
 	}
-	NoteNode = class extends XmlWalker.Element {
+	UmlNoteNode = class extends XmlWalker.Element {
 		function run() {
 			context.node.type = "uml:note"
-		}
-	}
-	NoteLabel = class extends XmlWalker.Element {
-		function run() {
-			context.node.nameLabel = text()
 		}
 	}
 	UmlClassNode = class extends XmlWalker.Element {
