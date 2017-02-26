@@ -42,6 +42,7 @@ return {
 		null
 		{ classname = "EdgeStyle" }
 		{ classname = "LineStyle" }
+		{ classname = "NoteLabel" }
 	]
 	edges = [
 		{
@@ -342,6 +343,12 @@ return {
 			target = 39
 			type = Walker.CHILDREN
 			element = "LineStyle"
+		}
+		{
+			source = 12
+			target = 40
+			type = Walker.CHILDREN
+			element = "NoteLabel"
 		}
 	]
 }

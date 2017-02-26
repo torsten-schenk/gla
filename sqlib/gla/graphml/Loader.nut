@@ -176,7 +176,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				return true
 			else if(attribute("key") in context.keys.attributes) {
 				local name = context.keys.attributes[attribute("key")].name
-				context.node.attributeData[name] <- text()
+				context.edge.attributeData[name] <- text()
 				return false
 			}
 			else
@@ -373,6 +373,11 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 	NoteNode = class extends XmlWalker.Element {
 		function run() {
 			context.node.type = "uml:note"
+		}
+	}
+	NoteLabel = class extends XmlWalker.Element {
+		function run() {
+			context.node.nameLabel = text()
 		}
 	}
 	UmlClassNode = class extends XmlWalker.Element {
