@@ -299,6 +299,8 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 								context.node.bpmn.ev.type = "timer"
 							else if(value == "EVENT_TYPE_ERROR")
 								context.node.bpmn.ev.type = "error"
+							else if(value == "EVENT_TYPE_TERMINATE")
+								context.node.bpmn.ev.type = "terminate"
 							else
 								throw "unknown bpmn event type: " + value
 							break
