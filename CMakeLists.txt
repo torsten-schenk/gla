@@ -13,9 +13,6 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extern/date")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-find_package(Yaml REQUIRED)
-include_directories(${YAML_INCLUDE_DIR})
-
 find_package(Csv REQUIRED)
 include_directories(${CSV_INCLUDE_DIR})
 
@@ -47,7 +44,6 @@ set(gla_SOURCES
 	csv/module.c csv/cbparser.c
 	sqstdlib/module.c
 	string/module.c string/unicode.c
-	yaml/module.c yaml/cbparser.c
 )
 
 set(gla_HEADERS
