@@ -615,7 +615,7 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				return
 			if(attribute("configuration") == null) {
 				if(context.label.row == null && context.label.col == null) {
-					if(context.node.nameLabel != null)
+					if(context.node.nameLabel != null && context.node.nameLabel != firsttext)
 						throw "name label defined multiple times"
 					context.node.nameLabel = firsttext
 				}
