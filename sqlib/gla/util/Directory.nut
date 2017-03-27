@@ -210,13 +210,13 @@ return class {
 	rvlookup_idx = null
 	rvlookup_id2idx = null
 
-	constructor(...) {
+	constructor(params = null) {
 		descend = SimpleTable(2, 1)
 		entries = []
-		if(vargv.len() > 0) { //create all reverse lookup roots
+		if(params != null && ("rvlookup" in params) && params.rvlookup.len() > 0) { //create all reverse lookup roots
 			rvlookup_id2idx = {}
-			rvlookup_idx = array(vargv.len())
-			foreach(i, v in vargv) {
+			rvlookup_idx = array(params.rvlookup.len())
+			foreach(i, v in params.rvlookup) {
 				local id = findPath(this, -1, v, true)
 				rvlookup_id2idx[id] <- i
 				rvlookup_idx[i] = {}
