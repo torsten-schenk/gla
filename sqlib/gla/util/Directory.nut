@@ -20,6 +20,44 @@ local Entry = class {
 	}
 }
 
+local FlatIterator = class {
+	dir = null
+	it = null
+
+	constructor(dir, it) {
+		this.dir = dir
+		this.it = it
+	}
+
+	function atEnd() {
+		return it.atEnd()
+	}
+
+	function next() {
+		return it.next()
+	}
+
+	function parent() {
+		return it.cell(0)
+	}
+
+	function name() {
+		return it.cell(1)
+	}
+
+	function id() {
+		return it.cell(2)
+	}
+
+	function entry() {
+		return dir.entries[it.cell(2)]
+	}
+
+	function data() {
+		return dir.entries[it.cell(2)].data
+	}
+}
+
 local splitPath = function(path) {
 	if(typeof(path) == "string") {
 		enum State {
@@ -226,7 +264,7 @@ return class {
 		local id = findPath(this, -1, root)
 		if(id == null)
 			return null
-		descend.group(id)
+		return FlatIterator(this, descend.group(id))
 	}
 
 	function parent(id) {
