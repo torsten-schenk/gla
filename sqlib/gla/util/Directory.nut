@@ -187,7 +187,6 @@ return class {
 	}
 
 	function insert(pathname, data) {
-		print("INSERT: '" + pathname + "'")
 		local lu = mkReverseLU(this)
 		local id = findPath(this, null, pathname, true, lu)
 		updateData(this, lu, id, data)
