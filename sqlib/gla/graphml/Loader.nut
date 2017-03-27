@@ -214,6 +214,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				case "com.yworks.flowchart.offPageReference":
 					context.node.type = "flow:offpref"
 					break
+				case "com.yworks.flowchart.predefinedProcess":
+					context.node.type = "flow:predefproc"
+					break
 				case "com.yworks.bpmn.Artifact.withShadow":
 				case "com.yworks.bpmn.Artifact":
 					context.genericNodeConfig.extensions = "bpmn:artifact"
