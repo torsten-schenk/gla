@@ -224,13 +224,13 @@ return class {
 		}
 	}
 
-	function insert(pathname, data) {
+	function insert(pathname, data = null) {
 		local lu = mkReverseLU(this)
 		local id = findPath(this, -1, pathname, true, lu)
 		updateData(this, lu, id, data)
 	}
 
-	function put(pathname, data) {
+	function put(pathname, data = null) {
 		local lu = mkReverseLU(this)
 		local id = findPath(this, -1, pathname, true, lu)
 		updateData(this, lu, id, data)
@@ -263,6 +263,31 @@ return class {
 			return null
 		else
 			return rvlookup[data]
+	}
+
+	function nsfind(rootname, pivotname, pathname) { //namespace lookup: 'rootname' is the root namespace; 'pivotname' is the current namespace (starting at 'rootname'); 'pathname' is the namespace to find. works similar to c++ namespace resolution. 'pathname' may be prefixed with '::' in order to start resolving at 'rootname' instead of 'pivotname'
+		local root = findPath(this, -1, rootname)
+		local pivot
+		local path
+		if(root == null)
+			return null
+		if(pathname.len() >= 2 && pathname[0] == ':' && pathname[1] == ':') {
+			pathname = pathname.slice(2)
+			pivot = root
+		}
+		else {
+			pivot = findPath(this, root, pivotname)
+			if(pivot == null)
+				pivot = root
+		}
+		while(true) {
+			path = findPath(this, pivot, pathname)
+			if(path != null)
+				return path
+			else if(pivot == root)
+				return null
+			pivot = entries[pivot].parent
+		}
 	}
 
 	function iterate(root, recursive = false) {
