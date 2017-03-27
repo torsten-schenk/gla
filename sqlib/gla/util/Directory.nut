@@ -128,9 +128,9 @@ local findPath = function(self, root, pathname, mk = false, lu = null) {
 }
 
 local mkReverseLU = function(self) {
-	if(!("rvlookup" in self.getclass().getattributes(null)))
+	if(self.rvlookup_idx == null)
 		return null
-	local result = array(self.getclass().getattributes(null).rvlookup.len())
+	local result = array(self.rvlookup_idx.len())
 	for(local i = 0; i < result.len(); i++)
 		result[i] = false
 	return result
@@ -172,14 +172,14 @@ return class {
 	rvlookup_idx = null
 	rvlookup_id2idx = null
 
-	constructor() {
+	constructor(...) {
 		descend = SimpleTable(2, 1)
 		entries = []
-		if("rvlookup" in this.getclass().getattributes(null)) { //create all reverse lookup roots
+		if(vargv.len() > 0) { //create all reverse lookup roots
 			rvlookup_id2idx = {}
-			rvlookup_idx = array(this.getclass().getattributes(null).rvlookup.len())
-			foreach(i, v in this.getclass().getattributes(null).rvlookup) {
-				local id = findPath(this, null, v, true)
+			rvlookup_idx = array(vargv.len())
+			foreach(i, v in vargv) {
+				local id = findPath(this, -1, v, true)
 				rvlookup_id2idx[id] <- i
 				rvlookup_idx[i] = {}
 			}
@@ -188,13 +188,13 @@ return class {
 
 	function insert(pathname, data) {
 		local lu = mkReverseLU(this)
-		local id = findPath(this, null, pathname, true, lu)
+		local id = findPath(this, -1, pathname, true, lu)
 		updateData(this, lu, id, data)
 	}
 
 	function append(pathname, data) {
 		local lu = mkReverseLU(this)
-		local parent = findPath(this, null, pathname, true, lu)
+		local parent = findPath(this, -1, pathname, true, lu)
 		local it = descend.upper([ parent MaxInt ])
 		local index = 0
 		if(!it.atBegin()) {
@@ -207,11 +207,11 @@ return class {
 	}
 
 	function find(pathname) {
-		return findPath(this, null, pathname)
+		return findPath(this, -1, pathname)
 	}
 
 	function rvfind(luroot, data) {
-		local root = findPath(this, null, luroot)
+		local root = findPath(this, -1, luroot)
 		if(root == null || !(root in rvlookup_id2idx))
 			throw "no such lookup-root: " + luroot
 		local rvlookup = rvlookup_idx[rvlookup_id2idx[root]]
@@ -221,12 +221,20 @@ return class {
 			return rvlookup[data]
 	}
 
+	function iterate(root, recursive = false) {
+		assert(!recursive) //TODO implement
+		local id = findPath(this, -1, root)
+		if(id == null)
+			return null
+		descend.group(id)
+	}
+
 	function parent(id) {
 		return entries[id].parent
 	}
 
 	function get(pathname) {
-		local id = findPath(this, null, pathname)
+		local id = findPath(this, -1, pathname)
 		if(id == null)
 			return null
 		else
@@ -245,11 +253,8 @@ return class {
 		return entries[id]
 	}
 
-	function _inherited(attr) {
-	}
-
 	function dump() {
-		dumpRecursion(this, null, 0)
+		dumpRecursion(this, -1, 0)
 	}
 }
 
