@@ -230,6 +230,12 @@ return class {
 		updateData(this, lu, id, data)
 	}
 
+	function put(pathname, data) {
+		local lu = mkReverseLU(this)
+		local id = findPath(this, -1, pathname, true, lu)
+		updateData(this, lu, id, data)
+	}
+
 	function append(pathname, data) {
 		local lu = mkReverseLU(this)
 		local parent = findPath(this, -1, pathname, true, lu)
