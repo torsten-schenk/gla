@@ -42,7 +42,17 @@ local FlatIterator = class {
 	}
 
 	function name() {
-		return it.cell(1)
+		if(typeof(it.cell(1)) == "string")
+			return it.cell(1)
+		else
+			return null
+	}
+
+	function index() {
+		if(typeof(it.cell(1)) == "integer")
+			return it.cell(1)
+		else
+			return null
 	}
 
 	function id() {
@@ -55,6 +65,14 @@ local FlatIterator = class {
 
 	function data() {
 		return dir.entries[it.cell(2)].data
+	}
+
+	function isIndex() {
+		return typeof(it.cell(1)) == "integer"
+	}
+
+	function isName() {
+		return typeof(it.cell(1)) == "string"
 	}
 }
 
@@ -165,12 +183,20 @@ local findPath = function(self, root, pathname, mk = false, lu = null) {
 	return id
 }
 
-local mkReverseLU = function(self) {
+local mkReverseLU = function(self, id = null) {
 	if(self.rvlookup_idx == null)
 		return null
 	local result = array(self.rvlookup_idx.len())
 	for(local i = 0; i < result.len(); i++)
 		result[i] = false
+	while(id != null) {
+		if(id in self.rvlookup_id2idx)
+			result[self.rvlookup_id2idx[id]] = true
+		if(id == -1)
+			id = null
+		else
+			id = self.entries[id].parent
+	}
 	return result
 }
 
@@ -180,7 +206,7 @@ local updateData = function(self, lu, id, data) {
 		foreach(i, v in lu)
 			if(v) {
 				if(old != null)
-					delete self.rvlookup[i][old]
+					delete self.rvlookup_idx[i][old]
 				if(data != null)
 					self.rvlookup_idx[i][data] <- id
 			}
@@ -231,12 +257,20 @@ return class {
 	}
 
 	function put(pathname, data = null) {
-		local lu = mkReverseLU(this)
-		local id = findPath(this, -1, pathname, true, lu)
+		local lu
+		local id
+		if(typeof(pathname) == "integer") {
+			id = pathname
+			lu = mkReverseLU(this, id)
+		}
+		else {
+			lu = mkReverseLU(this)
+			id = findPath(this, -1, pathname, true, lu)
+		}
 		updateData(this, lu, id, data)
 	}
 
-	function append(pathname, data) {
+	function append(pathname, data = null) {
 		local lu = mkReverseLU(this)
 		local parent = findPath(this, -1, pathname, true, lu)
 		local it = descend.upper([ parent MaxInt ])
@@ -250,8 +284,23 @@ return class {
 		updateData(this, lu, id, data)
 	}
 
+	function count(pathname, recursive = false) { //TODO implement recursion
+		local id = findPath(this, -1, pathname, false)
+		return descend.group(id).total()
+	}
+
 	function find(pathname) {
 		return findPath(this, -1, pathname)
+	}
+
+	function intree(root, child) {
+		while(true) {
+			if(child == root)
+				return true
+			else if(child == null)
+				return false
+			child = entries[child].parent
+		}
 	}
 
 	function rvfind(luroot, data) {
@@ -290,12 +339,33 @@ return class {
 		}
 	}
 
-	function iterate(root, recursive = false) {
+	function iterate(rootname, recursive = false) {
 		assert(!recursive) //TODO implement
-		local id = findPath(this, -1, root)
+		local id = findPath(this, -1, rootname)
 		if(id == null)
 			return null
 		return FlatIterator(this, descend.group(id))
+	}
+
+	function mk(root, pathname, data = null) {
+		local lu = mkReverseLU(this, root)
+		local id = findPath(this, root, pathname, true, lu)
+		updateData(this, lu, id, data)
+		return id
+	}
+
+	function mkappend(root, data = null) {
+		local lu = mkReverseLU(this, root)
+		local it = descend.upper([ root MaxInt ])
+		local index = 0
+		if(!it.atBegin()) {
+			it.prev()
+			if(it.cell(0) == root && typeof(it.cell(1)) == "integer")
+				index = it.cell(1) + 1
+		}
+		local id = findPath(this, root, [ index ], true)
+		updateData(this, lu, id, data)
+		return id
 	}
 
 	function parent(id) {
