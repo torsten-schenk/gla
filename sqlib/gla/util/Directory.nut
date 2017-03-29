@@ -1,22 +1,48 @@
 local strlib = import("squirrel.stringlib")
 local SimpleTable = import("gla.storage.SimpleTable")
 
-local regexFragment = strlib.regexp(@"([a-zA-Z_][a-zA-Z_0-9]*)?(\[[0-9]+\])?")
-local regexStringFragment = strlib.regexp(@"'([^']*)'(\[[0-9]+\])?")
-local strDelim = "'"[0]
-
 local MaxInt = (1 << (_intsize_ * 8 - 2)) - 1
 
 local Entry = class {
-	parent = null
-	name = null
-	index = null
-	data = null
+	_dir = null
+	_id = null
+	_parent = null
+	_name = null
+	_data = null
+	//context = null //TODO idea: add an optional context table with delegation to each entry.
 
-	constructor(parent, name, data = null) {
-		this.parent = parent
-		this.name = name
-		this.data = data
+	constructor(dir, id, parent, name, data = null) {
+		this._dir = dir
+		this._id = id
+		this._parent = parent
+		this._name = name
+		this._data = data
+	}
+
+	function _get(idx) {
+		local result = _dir.descend.tryValue([ _id idx ])
+		if(result == null)
+			throw null
+		else
+			return _dir.entries[result]
+	}
+
+	function _tostring() {
+		local name
+		local data
+		if(_name == null)
+			name = ""
+		else if(typeof(_name) == "string")
+			name = "['" + _name + "']"
+		else if(typeof(_name) == "integer")
+			name = "[" + _name + "]"
+		if(_data == null)
+			data = ""
+		else if(name.len() > 0)
+			data = " " + _data
+		else
+			data = _data
+		return name + data
 	}
 }
 
@@ -64,7 +90,7 @@ local FlatIterator = class {
 	}
 
 	function data() {
-		return dir.entries[it.cell(2)].data
+		return dir.entries[it.cell(2)]._data
 	}
 
 	function isIndex() {
@@ -96,7 +122,7 @@ local splitPath = function(path) {
 						state = State.StringFragment
 						start = i + 1
 					}
-					else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
+					else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
 						state = State.IdentifierFragment
 						start = i
 					}
@@ -138,20 +164,6 @@ local splitPath = function(path) {
 						state = State.AwaitingIndex
 					}
 					else if(c == 0)
-						throw "invalid path: '" + path + "'"
-					break
-				case State.IdentifierFragment:
-					if(c == '.' || c == 0) {
-						fragments.push(path.slice(start, i))
-						state = State.AwaitingAny
-					}
-					else if(c == '[') {
-						fragments.push(path.slice(start, i))
-						state = State.AwaitingIndexAny
-						start = i + 1
-					}
-					else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {}
-					else
 						throw "invalid path: '" + path + "'"
 					break
 				case State.IndexStringFragment:
@@ -210,7 +222,7 @@ local findPath = function(self, root, pathname, mk = false, lu = null) {
 				return null
 			id = self.entries.len()
 			self.descend.insert(key, id)
-			self.entries.push(Entry(key[0], key[1]))
+			self.entries.push(Entry(this, id, key[0], key[1]))
 		}
 		else if(lu != null && (id in self.rvlookup_id2idx))
 			lu[self.rvlookup_id2idx[id]] = true
@@ -231,13 +243,13 @@ local mkReverseLU = function(self, id = null) {
 		if(id == -1)
 			id = null
 		else
-			id = self.entries[id].parent
+			id = self.entries[id]._parent
 	}
 	return result
 }
 
 local updateData = function(self, lu, id, data) {
-	local old = self.entries[id].data
+	local old = self.entries[id]._data
 	if(lu != null)
 		foreach(i, v in lu)
 			if(v) {
@@ -246,7 +258,7 @@ local updateData = function(self, lu, id, data) {
 				if(data != null)
 					self.rvlookup_idx[i][data] <- id
 			}
-	self.entries[id].data = data
+	self.entries[id]._data = data
 }
 
 local dumpRecursion
@@ -257,16 +269,17 @@ dumpRecursion = function(self, parent, indent) {
 	for(local it = self.descend.group(parent); !it.atEnd(); it.next()) {
 		local name
 		local value
-		if(self.entries[it.cell(2)].data == null)
+		if(self.entries[it.cell(2)]._data == null)
 			value = ""
 		else
-			value = " -> " + self.entries[it.cell(2)].data
+			value = " -> " + self.entries[it.cell(2)]._data
 		print(istr + it.cell(1) + " {" + it.cell(2) + "}" + value)
 		dumpRecursion(self, it.cell(2), indent + 1)
 	}
 }
 
 return class {
+	root = null
 	descend = null
 	entries = null
 	rvlookup_idx = null
@@ -275,6 +288,7 @@ return class {
 	constructor(params = null) {
 		descend = SimpleTable(2, 1)
 		entries = []
+		root = Entry(this, -1, null, null, null)
 		if(params != null && ("rvlookup" in params) && params.rvlookup.len() > 0) { //create all reverse lookup roots
 			rvlookup_id2idx = {}
 			rvlookup_idx = array(params.rvlookup.len())
@@ -335,7 +349,7 @@ return class {
 				return true
 			else if(child == null)
 				return false
-			child = entries[child].parent
+			child = entries[child]._parent
 		}
 	}
 
@@ -371,7 +385,7 @@ return class {
 				return path
 			else if(pivot == root)
 				return null
-			pivot = entries[pivot].parent
+			pivot = entries[pivot]._parent
 		}
 	}
 
@@ -405,7 +419,7 @@ return class {
 	}
 
 	function parent(id) {
-		return entries[id].parent
+		return entries[id]._parent
 	}
 
 	function get(pathname) {
@@ -413,19 +427,22 @@ return class {
 		if(id == null)
 			return null
 		else
-			return entries[id].data
+			return entries[id]._data
 	}
 
 	function name(id) {
-		return entries[id].name
+		return entries[id]._name
 	}
 
 	function data(id) {
-		return entries[id].data
+		return entries[id]._data
 	}
 
-	function entry(id) {
-		return entries[id]
+	function entry(id = -1) {
+		if(id == -1)
+			return root
+		else
+			return entries[id]
 	}
 
 	function dump() {
