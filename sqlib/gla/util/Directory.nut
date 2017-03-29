@@ -79,7 +79,7 @@ local FlatIterator = class {
 local splitPath = function(path) {
 	if(typeof(path) == "string") {
 		enum State {
-			AwaitingAny, AwaitingIndex, StringFragment, IdentifierFragment, IndexFragment
+			AwaitingAny, AwaitingIndex, AwaitingIndexAny, AwaitingIndexEnd, StringFragment, IdentifierFragment, IndexStringFragment, IndexNumberFragment
 		}
 		local state = State.AwaitingAny
 		local start
@@ -101,7 +101,7 @@ local splitPath = function(path) {
 						start = i
 					}
 					else if(c == '[') {
-						state = State.IndexFragment
+						state = State.AwaitingIndexAny
 						start = i + 1
 					}
 					else if(c == 0) {}
@@ -113,8 +113,22 @@ local splitPath = function(path) {
 						state = State.AwaitingAny
 					else if(c == '[') {
 						start = i + 1
-						state = State.IndexFragment
+						state = State.AwaitingIndexAny
 					}
+					else
+						throw "invalid path: '" + path + "'"
+					break
+				case State.AwaitingIndexAny:
+					if(c == '\'') {
+						state = State.IndexStringFragment
+						start = i + 1
+					}
+					else if(c >= '0' && c <= '9')
+						state = State.IndexNumberFragment
+					break
+				case State.AwaitingIndexEnd:
+					if(c == ']')
+						state = State.AwaitingIndex
 					else
 						throw "invalid path: '" + path + "'"
 					break
@@ -133,14 +147,36 @@ local splitPath = function(path) {
 					}
 					else if(c == '[') {
 						fragments.push(path.slice(start, i))
-						state = State.IndexFragment
+						state = State.AwaitingIndexAny
 						start = i + 1
 					}
 					else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {}
 					else
 						throw "invalid path: '" + path + "'"
 					break
-				case State.IndexFragment:
+				case State.IndexStringFragment:
+					if(c == '\'') {
+						fragments.push(path.slice(start, i))
+						state = State.AwaitingIndexEnd
+					}
+					else if(c == 0)
+						throw "invalid path: '" + path + "'"
+					break
+				case State.IdentifierFragment:
+					if(c == '.' || c == 0) {
+						fragments.push(path.slice(start, i))
+						state = State.AwaitingAny
+					}
+					else if(c == '[') {
+						fragments.push(path.slice(start, i))
+						state = State.AwaitingIndexAny
+						start = i + 1
+					}
+					else if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {}
+					else
+						throw "invalid path: '" + path + "'"
+					break
+				case State.IndexNumberFragment:
 					if(c == ']') {
 						if(start == i)
 							throw "invalid path: '" + path + "'"
