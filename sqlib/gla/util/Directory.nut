@@ -105,12 +105,12 @@ local FlatIterator = class {
 local RecursiveIterator = class {
 	dir = null
 	stack = null
-	descending = null
+	lastdepth = null
 
 	constructor(dir, it) {
 		this.dir = dir
 		stack = [ it ]
-		descending = true
+		lastdepth = 0
 	}
 
 	function atEnd() {
@@ -118,23 +118,26 @@ local RecursiveIterator = class {
 	}
 
 	function next() {
-		if(descending) {
-			local it = dir.descend.group(stack.top().cell(2))
-			if(it.total() > 0)
-				stack.push(it)
-			else
-				descending = false
-		}
-		if(!descending) //'else' would be wrong here!
+		lastdepth = stack.len()
+		local it = dir.descend.group(stack.top().cell(2))
+		if(it.total() > 0)
+			stack.push(it)
+		else
 			while(stack.len() > 0) {
 				stack.top().next()
 				if(stack.top().atEnd())
 					stack.pop()
-				else {
-					descending = true
+				else
 					return
-				}
 			}
+	}
+
+	function rstrpath(root, sep = ".", prefix = "", postfix = "") {
+		return dir.rstrpath(root, stack.top().cell(2), sep, prefix, postfix)
+	}
+
+	function strpath(sep = ".", prefix = "", postfix = "") {
+		return dir.strpath(stack.top().cell(2), sep, prefix, postfix)
 	}
 
 	function parent() {
@@ -177,6 +180,10 @@ local RecursiveIterator = class {
 
 	function depth() {
 		return stack.len() - 1
+	}
+
+	function ddepth() {
+		return stack.len() - lastdepth
 	}
 }
 
@@ -532,7 +539,10 @@ return class {
 		return id
 	}
 
-	function parent(id) {
+	function parent(path) {
+		local id = toPathId(this, -1, path)
+		if(id == null)
+			return null
 		return entries[id]._parent
 	}
 
@@ -544,11 +554,17 @@ return class {
 			return entries[id]._data
 	}
 
-	function name(id) {
+	function name(path) {
+		local id = toPathId(this, -1, path)
+		if(id == null)
+			return null
 		return entries[id]._name
 	}
 
-	function data(id) {
+	function data(path) {
+		local id = toPathId(this, -1, path)
+		if(id == null)
+			return null
 		return entries[id]._data
 	}
 
@@ -562,7 +578,7 @@ return class {
 			return entries[id]
 	}
 
-	function rstrpath(root, path, sep = ".") {
+	function rstrpath(root, path, sep = ".", prefix = "", postfix = "") {
 		local rootid = toPathId(this, -1, root)
 		if(rootid == null)
 			return null
@@ -572,24 +588,24 @@ return class {
 		local strpath = null
 		while(pathid != rootid) {
 			if(strpath == null)
-				strpath = entries[pathid]._name
+				strpath = prefix + entries[pathid]._name + postfix
 			else
-				strpath = entries[pathid]._name + sep + strpath
+				strpath = prefix + entries[pathid]._name + postfix + sep + strpath
 			pathid = entries[pathid]._parent
 		}
 		return strpath
 	}
 
-	function strpath(path, sep = ".") {
+	function strpath(path, sep = ".", prefix = "", postfix = "") {
 		local pathid = toPathId(this, -1, path)
 		if(pathid == null)
 			return null
 		local strpath = null
 		while(pathid != -1) {
 			if(strpath == null)
-				strpath = entries[pathid]._name
+				strpath = prefix + entries[pathid]._name + postfix
 			else
-				strpath = entries[pathid]._name + sep + strpath
+				strpath = prefix + entries[pathid]._name + postfix + sep + strpath
 			pathid = entries[pathid]._parent
 		}
 		return strpath

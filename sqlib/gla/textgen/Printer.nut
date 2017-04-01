@@ -88,6 +88,13 @@ Printer = class {
 		_append(Fragment.Indent, 1)
 	}
 
+	function upnu(text) {
+		_append(Fragment.Indent, -1)
+		_append(Fragment.Text, text)
+		_append(Fragment.Newline)
+		_append(Fragment.Indent, -1)
+	}
+
 	function pr(text) {
 		if(text != null)
 			_append(Fragment.Text, text)
@@ -117,6 +124,12 @@ Printer = class {
 		_append(Fragment.Indent, -1)
 		_append(Fragment.Text, text)
 		_append(Fragment.Indent, 1)
+	}
+
+	function upru(text) {
+		_append(Fragment.Indent, -1)
+		_append(Fragment.Text, text)
+		_append(Fragment.Indent, -1)
 	}
 
 	function pt(text, indentstr = "\t", nlstr = "\n") {
