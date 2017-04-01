@@ -102,6 +102,84 @@ local FlatIterator = class {
 	}
 }
 
+local RecursiveIterator = class {
+	dir = null
+	stack = null
+	descending = null
+
+	constructor(dir, it) {
+		this.dir = dir
+		stack = [ it ]
+		descending = true
+	}
+
+	function atEnd() {
+		return stack.len() == 0
+	}
+
+	function next() {
+		if(descending) {
+			local it = dir.descend.group(stack.top().cell(2))
+			if(it.total() > 0)
+				stack.push(it)
+			else
+				descending = false
+		}
+		if(!descending) //'else' would be wrong here!
+			while(stack.len() > 0) {
+				stack.top().next()
+				if(stack.top().atEnd())
+					stack.pop()
+				else {
+					descending = true
+					return
+				}
+			}
+	}
+
+	function parent() {
+		return stack.top().cell(0)
+	}
+
+	function name() {
+		if(typeof(stack.top().cell(1)) == "string")
+			return stack.top().cell(1)
+		else
+			return null
+	}
+
+	function index() {
+		if(typeof(stack.top().cell(1)) == "integer")
+			return stack.top().cell(1)
+		else
+			return null
+	}
+
+	function id() {
+		return stack.top().cell(2)
+	}
+
+	function entry() {
+		return dir.entries[stack.top().cell(2)]
+	}
+
+	function data() {
+		return dir.entries[stack.top().cell(2)]._data
+	}
+
+	function isIndex() {
+		return typeof(stack.top().cell(1)) == "integer"
+	}
+
+	function isName() {
+		return typeof(stack.top().cell(1)) == "string"
+	}
+
+	function depth() {
+		return stack.len() - 1
+	}
+}
+
 local splitPath = function(path) {
 	if(typeof(path) == "string") {
 		enum State {
@@ -231,6 +309,19 @@ local findPath = function(self, root, pathname, mk = false, lu = null) {
 	return id
 }
 
+local toPathId = function(self, root, thang) {
+	if(thang == null)
+		return -1
+	else if(thang instanceof Entry)
+		return thang._id
+	else if(typeof(thang) == "integer")
+		return thang
+	else if(typeof(thang) == "array" || typeof(thang) == "string")
+		return findPath(self, root, thang)
+	else
+		assert(false)
+}
+
 local mkReverseLU = function(self, id = null) {
 	if(self.rvlookup_idx == null)
 		return null
@@ -300,6 +391,18 @@ return class {
 		}
 	}
 
+	function exists(pathname) {
+		return findPath(this, -1, pathname) != null
+	}
+
+	function rexists(root, pathname) {
+		local rootid = toPathId(this, -1, root)
+		if(rootid == null)
+			return false
+		else
+			return findPath(this, rootid, pathname) != null
+	}
+
 	function insert(pathname, data = null) {
 		local lu = mkReverseLU(this)
 		local id = findPath(this, -1, pathname, true, lu)
@@ -343,6 +446,13 @@ return class {
 		return findPath(this, -1, pathname)
 	}
 
+	function rfind(root, pathname) {
+		local rootid = toPathId(this, -1, root)
+		if(rootid == null)
+			return null
+		return findPath(this, rootid, pathname)
+	}
+
 	function intree(root, child) {
 		while(true) {
 			if(child == root)
@@ -353,8 +463,8 @@ return class {
 		}
 	}
 
-	function rvfind(luroot, data) {
-		local root = findPath(this, -1, luroot)
+	function findrv(luroot, data) {
+		local root = toPathId(this, -1, luroot)
 		if(root == null || !(root in rvlookup_id2idx))
 			throw "no such lookup-root: " + luroot
 		local rvlookup = rvlookup_idx[rvlookup_id2idx[root]]
@@ -364,8 +474,8 @@ return class {
 			return rvlookup[data]
 	}
 
-	function nsfind(rootname, pivotname, pathname) { //namespace lookup: 'rootname' is the root namespace; 'pivotname' is the current namespace (starting at 'rootname'); 'pathname' is the namespace to find. works similar to c++ namespace resolution. 'pathname' may be prefixed with '::' in order to start resolving at 'rootname' instead of 'pivotname'
-		local root = findPath(this, -1, rootname)
+	function findns(rootname, pivotname, pathname) { //namespace lookup: 'rootname' is the root namespace; 'pivotname' is the current namespace (starting at 'rootname'); 'pathname' is the namespace to find. works similar to c++ namespace resolution. 'pathname' may be prefixed with '::' in order to start resolving at 'rootname' instead of 'pivotname'
+		local root = toPathId(this, -1, rootname)
 		local pivot
 		local path
 		if(root == null)
@@ -374,9 +484,11 @@ return class {
 			pathname = pathname.slice(2)
 			pivot = root
 		}
+		else if(pivotname == null)
+			pivot = root
 		else {
-			pivot = findPath(this, root, pivotname)
-			if(pivot == null)
+			pivot = toPathId(this, root, pivotname)
+			if(pivot == null || !intree(root, pivot))
 				pivot = root
 		}
 		while(true) {
@@ -390,11 +502,13 @@ return class {
 	}
 
 	function iterate(rootname, recursive = false) {
-		assert(!recursive) //TODO implement
-		local id = findPath(this, -1, rootname)
+		local id = toPathId(this, -1, rootname)
 		if(id == null)
 			return null
-		return FlatIterator(this, descend.group(id))
+		if(recursive)
+			return RecursiveIterator(this, descend.group(id))
+		else
+			return FlatIterator(this, descend.group(id))
 	}
 
 	function mk(root, pathname, data = null) {
@@ -438,11 +552,47 @@ return class {
 		return entries[id]._data
 	}
 
-	function entry(id = -1) {
-		if(id == -1)
+	function entry(path = null) {
+		local id = toPathId(this, -1, path)
+		if(id == null)
+			return null
+		else if(id == -1)
 			return root
 		else
 			return entries[id]
+	}
+
+	function rstrpath(root, path, sep = ".") {
+		local rootid = toPathId(this, -1, root)
+		if(rootid == null)
+			return null
+		local pathid = toPathId(this, rootid, path)
+		if(pathid == null)
+			return null
+		local strpath = null
+		while(pathid != rootid) {
+			if(strpath == null)
+				strpath = entries[pathid]._name
+			else
+				strpath = entries[pathid]._name + sep + strpath
+			pathid = entries[pathid]._parent
+		}
+		return strpath
+	}
+
+	function strpath(path, sep = ".") {
+		local pathid = toPathId(this, -1, path)
+		if(pathid == null)
+			return null
+		local strpath = null
+		while(pathid != -1) {
+			if(strpath == null)
+				strpath = entries[pathid]._name
+			else
+				strpath = entries[pathid]._name + sep + strpath
+			pathid = entries[pathid]._parent
+		}
+		return strpath
 	}
 
 	function dump() {
