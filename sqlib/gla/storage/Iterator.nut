@@ -77,6 +77,10 @@ return class {
 		end = _c.idx()
 	}
 
+	function groupAtEnd() {
+		return begin == groupend
+	}
+
 	function total() {
 		if(begin == null || end == null)
 			return null

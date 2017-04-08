@@ -332,23 +332,44 @@ return class {
 		return result
 	}
 
-	function groups(nkey) {
-		::assert(nkey <= _colspec.kcols)
-		::assert(nkey > 0)
+	function groups(nkey, prefix = null) {
 		local result
+		local dim
+		local prefixdim = prefix == null ? 0 : prefix.len()
+		::assert(nkey + prefixdim <= _colspec.kcols)
+		::assert(nkey > 0)
 		
-		_c.ldrb()
+		if(prefix == null)
+			_c.ldrb()
+		else {
+			dim = _putcells(0, _colspec.kcols, prefix)
+			_c.ldrl(dim)
+		}
 		result = _c.it()
-		_c.clr()
 		result._c = _c
 		result._colspec = _colspec
-		result.end = 0 //will becom result.begin after groupNext()
-		result.groupbegin = 0
-		result.groupend = _c.sz()
-		result.groupoff = 0
-		result.grouplen = nkey
-		result._groupkey = ::array(nkey)
+		result.end = result.index //will become result.begin after groupNext()
+		result.groupbegin = result.index
+		_c.clr()
+
+		if(prefix == null)
+			result.groupend = _c.sz()
+		else {
+			dim = _putcells(0, _colspec.kcols, prefix)
+			_c.ldru(dim)
+			result.groupend = _c.idx()
+			if(result.groupend == null)
+				result.groupend = _c.sz()
+			_c.clr()
+			result.groupoff = prefixdim
+		}
+
+		result.grouplen = nkey + prefixdim
+		result._groupkey = ::array(nkey + prefixdim)
+		for(local i = 0; i < prefixdim; i++)
+			result._groupkey[i] = prefix[i]
 		result.groupNext()
+
 		return result
 	}
 

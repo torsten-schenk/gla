@@ -316,7 +316,7 @@ local findPath = function(self, root, pathname, mk = false, lu = null) {
 	return id
 }
 
-local toPathId = function(self, root, thang) {
+local toPathId = function(self, root, thang, mk = false, lu = null) {
 	if(thang == null)
 		return -1
 	else if(thang instanceof Entry)
@@ -324,7 +324,7 @@ local toPathId = function(self, root, thang) {
 	else if(typeof(thang) == "integer")
 		return thang
 	else if(typeof(thang) == "array" || typeof(thang) == "string")
-		return findPath(self, root, thang)
+		return findPath(self, root, thang, mk, lu)
 	else
 		assert(false)
 }
@@ -414,6 +414,17 @@ return class {
 		local lu = mkReverseLU(this)
 		local id = findPath(this, -1, pathname, true, lu)
 		updateData(this, lu, id, data)
+		return id
+	}
+
+	function rinsert(root, pathname, data = null) {
+		local rootid = toPathId(this, -1, root)
+		if(rootid == null)
+			return null
+		local lu = mkReverseLU(this, rootid)
+		local id = findPath(this, rootid, pathname, true, lu)
+		updateData(this, lu, id, data)
+		return id
 	}
 
 	function put(pathname, data = null) {
@@ -428,11 +439,12 @@ return class {
 			id = findPath(this, -1, pathname, true, lu)
 		}
 		updateData(this, lu, id, data)
+		return id
 	}
 
 	function append(pathname, data = null) {
-		local lu = mkReverseLU(this)
-		local parent = findPath(this, -1, pathname, true, lu)
+		local parent = toPathId(this, -1, pathname, true)
+		local lu = mkReverseLU(this, parent)
 		local it = descend.upper([ parent MaxInt ])
 		local index = 0
 		if(!it.atBegin()) {
@@ -442,6 +454,7 @@ return class {
 		}
 		local id = findPath(this, parent, [ index ], true)
 		updateData(this, lu, id, data)
+		return id
 	}
 
 	function count(pathname, recursive = false) { //TODO implement recursion
@@ -566,6 +579,19 @@ return class {
 		if(id == null)
 			return null
 		return entries[id]._data
+	}
+
+	function rentry(root, path = null) {
+		local rootid = toPathId(this, -1, root)
+		if(rootid == null)
+			return null
+		local id = toPathId(this, rootid, path)
+		if(id == null)
+			return null
+		else if(id == -1)
+			return this.root
+		else
+			return entries[id]
 	}
 
 	function entry(path = null) {
