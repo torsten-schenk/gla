@@ -217,6 +217,15 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 				case "com.yworks.flowchart.predefinedProcess":
 					context.node.type = "flow:predefproc"
 					break
+				case "com.yworks.flowchart.userMessage":
+					context.node.type = "flow:usermessage"
+					break
+				case "com.yworks.flowchart.manualInput":
+					context.node.type = "flow:manualinput"
+					break
+				case "com.yworks.flowchart.terminator":
+					context.node.type = "flow:terminator"
+					break
 				case "com.yworks.bpmn.Artifact.withShadow":
 				case "com.yworks.bpmn.Artifact":
 					context.genericNodeConfig.extensions = "bpmn:artifact"
@@ -305,6 +314,10 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 						case "com.yworks.bpmn.type":
 							if(value == "EVENT_TYPE_PLAIN")
 								context.node.bpmn.ev.type = "plain"
+							else if(value == "EVENT_TYPE_ESCALATION")
+								context.node.bpmn.ev.type = "escalation"
+							else if(value == "EVENT_TYPE_LINK")
+								context.node.bpmn.ev.type = "link"
 							else if(value == "EVENT_TYPE_MESSAGE")
 								context.node.bpmn.ev.type = "message"
 							else if(value == "EVENT_TYPE_TIMER")

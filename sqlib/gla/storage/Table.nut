@@ -335,7 +335,17 @@ return class {
 	function groups(nkey, prefix = null) {
 		local result
 		local dim
-		local prefixdim = prefix == null ? 0 : prefix.len()
+		local prefixdim
+		
+		if(prefix == null)
+			prefixdim = 0
+		else if(typeof(prefix) == "array")
+			prefixdim = prefix.len()
+		else {
+			prefix = [ prefix ]
+			prefixdim = 1
+		}
+
 		::assert(nkey + prefixdim <= _colspec.kcols)
 		::assert(nkey > 0)
 		

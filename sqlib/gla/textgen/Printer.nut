@@ -88,6 +88,13 @@ Printer = class {
 		_append(Fragment.Indent, 1)
 	}
 
+	function ipnu(text) {
+		_append(Fragment.Indent, 1)
+		_append(Fragment.Text, text)
+		_append(Fragment.Newline)
+		_append(Fragment.Indent, -1)
+	}
+
 	function upnu(text) {
 		_append(Fragment.Indent, -1)
 		_append(Fragment.Text, text)

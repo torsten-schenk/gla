@@ -46,6 +46,12 @@ local Entry = class {
 	}
 }
 
+local EmptyIterator = class {
+	function atEnd() {
+		return true
+	}
+}
+
 local FlatIterator = class {
 	dir = null
 	it = null
@@ -524,8 +530,8 @@ return class {
 	function iterate(rootname, recursive = false) {
 		local id = toPathId(this, -1, rootname)
 		if(id == null)
-			return null
-		if(recursive)
+			return EmptyIterator()
+		else if(recursive)
 			return RecursiveIterator(this, descend.group(id))
 		else
 			return FlatIterator(this, descend.group(id))
