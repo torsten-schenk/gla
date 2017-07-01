@@ -20,7 +20,6 @@ return class {
 		local id = curentry
 		while((ascend > 0 || ascend = -1) && id != null)
 			id = directory.parent(id)
-		::print("SELECT PATH: " + path)
 		if(path != null && path != "") {
 			if(id != null)
 				id = directory.rfind(id, path)
@@ -29,7 +28,6 @@ return class {
 			if(id == null)
 				throw "printer not found"
 		}
-		::print("SELECTED: " + curentry + " " + id)
 		stack.push(curentry)
 		curentry = id
 		if(curentry == null)
@@ -136,6 +134,10 @@ return class {
 
 	function pt(text, indentstr = "\t", nlstr = "\n") {
 		current.pt(text, indentstr, nlstr)
+	}
+
+	function embed(other) {
+		current.embed(other)
 	}
 
 	function indent(amount = 1) {
