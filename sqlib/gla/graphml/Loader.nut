@@ -94,7 +94,9 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 					activity = {
 						type = null,
 						adhoc = null,
-						closed =null
+						closed = null,
+						task = null,
+						iteration = null
 					}
 					ev = {
 						type = null,
@@ -365,10 +367,36 @@ Base = class extends XmlWalker </ nodes = walkerdef.nodes, edges = walkerdef.edg
 						case "com.yworks.bpmn.marker3":
 							if(value == "BPMN_MARKER_AD_HOC")
 								context.node.bpmn.activity.adhoc = true
+							else if(value == "BPMN_MARKER_COMPENSATION")
+								context.node.bpmn.activity.compensation = true
+							else if(value == "BPMN_MARKER_LOOP")
+								context.node.bpmn.activity.iteration = "loop"
+							else if(value == "BPMN_MARKER_PARALLEL")
+								context.node.bpmn.activity.iteration = "parallel"
+							else if(value == "BPMN_MARKER_SEQUENTIAL")
+								context.node.bpmn.activity.iteration = "sequential"
 							else if(value == "BPMN_MARKER_CLOSED")
 								context.node.bpmn.activity.closed = true
 							else if(value == "BPMN_MARKER_OPEN")
 								context.node.bpmn.activity.closed = false
+							break
+						case "com.yworks.bpmn.taskType":
+							if(value == "TASK_TYPE_ABSTRACT")
+								context.node.bpmn.activity.task = null
+							else if(value == "TASK_TYPE_SERVICE")
+								context.node.bpmn.activity.task = "service"
+							else if(value == "TASK_TYPE_SEND")
+								context.node.bpmn.activity.task = "send"
+							else if(value == "TASK_TYPE_RECEIVE")
+								context.node.bpmn.activity.task = "receive"
+							else if(value == "TASK_TYPE_USER")
+								context.node.bpmn.activity.task = "user"
+							else if(value == "TASK_TYPE_MANUAL")
+								context.node.bpmn.activity.task = "manual"
+							else if(value == "TASK_TYPE_BUSINESS_RULE")
+								context.node.bpmn.activity.task = "businessrule"
+							else if(value == "TASK_TYPE_SCRIPT")
+								context.node.bpmn.activity.task = "script"
 							break
 					}
 				else if(context.genericNodeConfig.extensions == "bpmn:gateway")
