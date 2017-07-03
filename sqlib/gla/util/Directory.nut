@@ -646,5 +646,9 @@ return class {
 	function dump() {
 		dumpRecursion(this, -1, 0)
 	}
+
+	static function split(path) {
+		return splitPath(path)
+	}
 }
 
