@@ -1,23 +1,21 @@
 local strlib = import("squirrel.stringlib")
-local Directory = import("gla.util.Directory")
 local Identifier = import("gla.string.Identifier")
 
 local Node = import("gla.model.Node")
 
 return class {
-	dir = null
+	static Node = Node
 	node = null
 
 	constructor() {
 		node = {}
-		dir = Directory()
 	}
 
-	function newnode(pathname, slots, staticslots = null) {
+	function newnode(pathname, slots = null, staticslots = null) {
 		local name 
 		local err
-		local path = Directory.split(pathname)
-		local curid = -1
+		local path = strlib.split(pathname, ".")
+		local cur = node
 		local cursuper = Node
 		for(local i = 0; i < path.len() - 1; i++) {
 			name = Identifier(path[i], Identifier.LowerUnderscore)
@@ -25,18 +23,19 @@ return class {
 			if(err != null)
 				throw "invalid node class name '" + name + "': " + err
 			local supername = name.convert(Identifier.CapitalCamel)
-			local superid = dir.rentry(curid, supername.tostring())
-			if(superid == null) {
+
+			local super
+
+			if(supername.tostring() in cur)
+				cursuper = cur[supername.tostring()]
+			else {
 				cursuper = class extends cursuper {}
-				superid = dir.rinsert(curid, supername.tostring(), cursuper)
+				cur[supername.tostring()] <- cursuper
 			}
-			else
-				cursuper = dir.data(superid)
-			local childid = dir.rfind(curid, name.tostring())
-			if(childid == null)
-				curid = dir.rinsert(curid, name.tostring())
-			else
-				curid = childid
+
+			if(!(name.tostring() in cur))
+				cur[name.tostring()] <- {}
+			cur = cur[name.tostring()]
 		}
 
 		name = Identifier(path[path.len() - 1], Identifier.CapitalCamel)
@@ -50,7 +49,7 @@ return class {
 		if(staticslots != null)
 			foreach(i, v in staticslots)
 				clazz.newmember(i, v, null, true)
-		dir.rinsert(curid, name.tostring(), clazz)
+		cur[name.tostring()] <- clazz
 		return
 
 
