@@ -8,9 +8,9 @@ return class {
 		local from2
 		local to2
 		if(!(source in from))
-			from2 = {}
+			from[source] <- {}
 		if(!(target in to))
-			to2 = {}
+			to[target] <- {}
 		from2 = from[source]
 		to2 = to[target]
 		if(target in from2)
@@ -21,5 +21,11 @@ return class {
 		from2[target] <- this
 		to2[source] <- this
 	}
+
+	constructor(model) {
+		assert(model.getclass().getattributes(null).meta == getclass().getattributes(null).source)
+	}
+
+	convert = null //function convert(options = null)
 }
 

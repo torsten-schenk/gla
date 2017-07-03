@@ -4,6 +4,7 @@ local Identifier = import("gla.string.Identifier")
 local BaseNode = import("gla.model.Node")
 local BaseEdge = import("gla.model.Edge")
 local BaseGraph = import("gla.model.Graph")
+local BaseModel = import("gla.model.Model")
 
 local newclass = function(Base, dir, pathname, slots, staticslots) {
 	local name 
@@ -36,8 +37,7 @@ local newclass = function(Base, dir, pathname, slots, staticslots) {
 	err = name.validate()
 	if(err != null)
 		throw "invalid class name '" + name + "': " + err
-	local clazz = class extends cursuper {}
-	clazz.newmember("Super", cursuper, null, true)
+	local clazz = class extends cursuper </ path = path, pathname = pathname /> {}
 	if(slots != null)
 		foreach(i, v in slots)
 			clazz.newmember(i, v)
@@ -51,6 +51,7 @@ local newclass = function(Base, dir, pathname, slots, staticslots) {
 enum Stage {
 	SetBaseClasses,
 	AddClasses,
+	SetModelClass,
 	Finished
 }
 
@@ -58,6 +59,7 @@ return class {
 	Node = null
 	Edge = null
 	Graph = null
+	Model = null
 
 	node = null
 	edge = null
@@ -69,6 +71,7 @@ return class {
 		Node = BaseNode
 		Edge = BaseEdge
 		Graph = BaseGraph
+		Model = BaseModel
 		node = {}
 		edge = {}
 		graph = {}
@@ -89,6 +92,11 @@ return class {
 			}
 			else if(cur == BaseGraph) {
 				Graph = clazz
+				return
+			}
+			else if(cur == BaseModel) {
+				Model = clazz
+				Model.getattributes(null).meta <- this
 				return
 			}
 			else
@@ -112,6 +120,21 @@ return class {
 		return newclass(Node, node, pathname, slots, staticslots)
 	}
 
+	function setmodel(clazz) {
+		advance(Stage.SetModelClass)
+
+		local cur = clazz
+		while(cur != null) {
+			if(cur == BaseModel) {
+				Model = clazz
+				return
+			}
+			else
+				cur = cur.getbase()
+		}
+		throw "error setting model class: class does not inherit Model"
+	}
+
 	function finish() {
 		advance(Stage.Finished)
 	}
@@ -125,6 +148,9 @@ return class {
 					stage++
 					break
 				case Stage.AddClasses:
+					stage++
+					break
+				case Stage.SetModelClass:
 					stage++
 					break
 				default:
