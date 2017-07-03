@@ -164,12 +164,12 @@ return class {
 	}
 
 	function convert(type, options = null) {
-		this.type = type
-		this.options = options
-		string = null
-		if(fragments != null && type != null)
-			string = combine(fragments, type, options) //NOTE: 'fragments' gets intentionally modified
-		return string
+		local result = getclass().instance()
+		result.type = type
+		result.options = options
+		result.fragments = clone(fragments)
+		result.string = combine(result.fragments, type, options) //NOTE: 'fragments' gets intentionally modified
+		return result
 	}
 
 	function validate() {
