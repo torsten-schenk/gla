@@ -2050,7 +2050,6 @@ int gla_rt_import(
 			sq_pushstring(rt->vm, entity, -1);
 			sq_set(rt->vm, -3);
 		}
-			gla_rt_dump_opstack(rt, NULL);
 
 		sq_pushstring(rt->vm, GLA_EXPORT_SLOT, -1);
 		if(!SQ_FAILED(sq_rawget(rt->vm, -2))) {

@@ -6,7 +6,7 @@ local BaseEdge = import("gla.model.Edge")
 local BaseGraph = import("gla.model.Graph")
 local BaseModel = import("gla.model.Model")
 
-local newclass = function(Base, dir, pathname, slots, staticslots) {
+local newclass = function(Base, dir, pathname, slots, staticslots, byclass) {
 	local name 
 	local err
 	local path = strlib.split(pathname, ".")
@@ -45,6 +45,7 @@ local newclass = function(Base, dir, pathname, slots, staticslots) {
 		foreach(i, v in staticslots)
 			clazz.newmember(i, v, null, true)
 	cur[name.tostring()] <- clazz
+	byclass[clazz] <- pathname
 	return clazz
 }
 
@@ -56,6 +57,8 @@ enum Stage {
 }
 
 return class {
+	package = null
+
 	Node = null
 	Edge = null
 	Graph = null
@@ -65,16 +68,22 @@ return class {
 	edge = null
 	graph = null
 
+	rvnode = null
+	rvedge = null
+	rvgraph = null
+
 	stage = Stage.SetBaseClasses
 
 	constructor() {
 		Node = BaseNode
 		Edge = BaseEdge
 		Graph = BaseGraph
-		Model = BaseModel
 		node = {}
 		edge = {}
 		graph = {}
+		rvnode = {}
+		rvedge = {}
+		rvgraph = {}
 	}
 
 	function setbase(clazz) {
@@ -94,11 +103,6 @@ return class {
 				Graph = clazz
 				return
 			}
-			else if(cur == BaseModel) {
-				Model = clazz
-				Model.getattributes(null).meta <- this
-				return
-			}
 			else
 				cur = cur.getbase()
 		}
@@ -107,17 +111,17 @@ return class {
 
 	function mkgraph(pathname, slots = null, staticslots = null) {
 		advance(Stage.AddClasses)
-		return newclass(Graph, graph, pathname, slots, staticslots)
+		return newclass(Graph, graph, pathname, slots, staticslots, rvgraph)
 	}
 
 	function mkedge(pathname, slots = null, staticslots = null) {
 		advance(Stage.AddClasses)
-		return newclass(Edge, edge, pathname, slots, staticslots)
+		return newclass(Edge, edge, pathname, slots, staticslots, rvedge)
 	}
 
 	function mknode(pathname, slots = null, staticslots = null) {
 		advance(Stage.AddClasses)
-		return newclass(Node, node, pathname, slots, staticslots)
+		return newclass(Node, node, pathname, slots, staticslots, rvnode)
 	}
 
 	function setmodel(clazz) {
@@ -126,6 +130,12 @@ return class {
 		local cur = clazz
 		while(cur != null) {
 			if(cur == BaseModel) {
+				if(clazz.getattributes(null) == null)
+					clazz.setattributes(null, { meta = this })
+				else if("meta" in clazz.getattributes(null))
+					throw "model class already belongs to a different meta model"
+				else
+					clazz.getattributes(null).meta <- this
 				Model = clazz
 				return
 			}
@@ -151,12 +161,18 @@ return class {
 					stage++
 					break
 				case Stage.SetModelClass:
+					if(Model == null)
+						Model = class extends BaseModel </ meta = this /> {}
 					stage++
 					break
 				default:
 					assert(false)
 			}
 		}
+	}
+
+	function _export(package, entity) {
+		this.package = package
 	}
 }
 
