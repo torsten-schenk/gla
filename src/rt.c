@@ -1894,6 +1894,7 @@ int gla_rt_import(
 	gla_path_t relpath; /* relative path (starting at mount root) */
 	gla_path_t packpath;
 	const char *entity;
+	const char *package;
 	gla_mount_t *mount;
 	gla_io_t *io;
 	int method = METHOD_UNKNOWN;
@@ -1957,6 +1958,7 @@ int gla_rt_import(
 	/* so: has the entity already been registered? */
 	path.extension = NULL;
 	entity = gla_path_tostring(&path, pool);
+	package = gla_path_tostring(&packpath, pool);
 	switch(method) {
 		case METHOD_COMPILE:
 			io = gla_mount_open(mount, &relpath, GLA_MODE_READ, pool);
@@ -2047,6 +2049,20 @@ int gla_rt_import(
 			sq_pushstring(rt->vm, GLA_ENTITYOF_SLOT, -1);
 			sq_pushstring(rt->vm, entity, -1);
 			sq_set(rt->vm, -3);
+		}
+			gla_rt_dump_opstack(rt, NULL);
+
+		sq_pushstring(rt->vm, GLA_EXPORT_SLOT, -1);
+		if(!SQ_FAILED(sq_rawget(rt->vm, -2))) {
+			sq_push(rt->vm, -2);
+			sq_pushstring(rt->vm, package, -1);
+			sq_pushstring(rt->vm, path.entity, -1);
+			ret = sq_call(rt->vm, 3, false, true);
+			sq_poptop(rt->vm);
+			if(ret != SQ_OK) {
+				LOG_ERROR("error in _export() method");
+				return GLA_VM;
+			}
 		}
 	}
 

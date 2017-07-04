@@ -30,6 +30,7 @@
 #define GLA_ENTITY_EXT_DYNLIB "linux-x86_64" /* TODO x86_64-linux-gnu */
 #define GLA_ENTITY_EXT_IO "io"
 #define GLA_ENTITYOF_SLOT "_entityof" /* when importing, for instances and tables (rawget) that have this slot, the value will be set to the imported entity name */
+#define GLA_EXPORT_SLOT "_export" /* when importing, for instances and tables (rawget) that have this slot, the value will be set to the imported entity name */
 
 #define GLA_LOG_ERROR(RT, MSG...) \
 	do { \
