@@ -5,6 +5,22 @@ local BaseNode = import("gla.model.Node")
 local BaseEdge = import("gla.model.Edge")
 local BaseGraph = import("gla.model.Graph")
 local BaseModel = import("gla.model.Model")
+local BaseParser = import("gla.model.Parser")
+
+local instances = {} //package -> Meta instance
+
+local BaseMeta
+local configure = function(package) {
+	if(package in instances) 
+		return instances[package]
+	else {
+		local meta = import(package + ".meta")
+		assert(meta instanceof BaseMeta)
+		assert(meta.package == package)
+		instances[package] <- meta
+		return meta
+	}
+}
 
 local newclass = function(Base, dir, pathname, slots, staticslots, byclass) {
 	local name 
@@ -50,14 +66,26 @@ local newclass = function(Base, dir, pathname, slots, staticslots, byclass) {
 }
 
 enum Stage {
-	SetBaseClasses,
-	AddClasses,
-	SetModelClass,
+	Initialized,
+	SetNodeBaseClass,
+	AddNodeClasses,
+	SetEdgeBaseClass,
+	AddEdgeClasses,
+	SetGraphBaseClass,
+	AddGraphClasses
+	SetModelBaseClass,
+	AddAdapters,
 	Finished
 }
 
-return class {
+BaseMeta = class {
 	package = null
+
+	parsers = null
+	importers = null
+	converters = null
+	exporters = null
+	generators = null
 
 	Node = null
 	Edge = null
@@ -72,7 +100,7 @@ return class {
 	rvedge = null
 	rvgraph = null
 
-	stage = Stage.SetBaseClasses
+	stage = Stage.Initialized
 
 	constructor() {
 		Node = BaseNode
@@ -87,49 +115,25 @@ return class {
 	}
 
 	function setbase(clazz) {
-		advance(Stage.SetBaseClasses)
-
 		local cur = clazz
 		while(cur != null) {
 			if(cur == BaseNode) {
+				advance(Stage.SetNodeBaseClass)
 				Node = clazz
 				return
 			}
 			else if(cur == BaseEdge) {
+				advance(Stage.SetEdgeBaseClass)
 				Edge = clazz
 				return
 			}
 			else if(cur == BaseGraph) {
+				advance(Stage.SetGraphBaseClass)
 				Graph = clazz
 				return
 			}
-			else
-				cur = cur.getbase()
-		}
-		throw "error setting base class: base class does not inherit any of Node, Edge or Graph"
-	}
-
-	function mkgraph(pathname, slots = null, staticslots = null) {
-		advance(Stage.AddClasses)
-		return newclass(Graph, graph, pathname, slots, staticslots, rvgraph)
-	}
-
-	function mkedge(pathname, slots = null, staticslots = null) {
-		advance(Stage.AddClasses)
-		return newclass(Edge, edge, pathname, slots, staticslots, rvedge)
-	}
-
-	function mknode(pathname, slots = null, staticslots = null) {
-		advance(Stage.AddClasses)
-		return newclass(Node, node, pathname, slots, staticslots, rvnode)
-	}
-
-	function setmodel(clazz) {
-		advance(Stage.SetModelClass)
-
-		local cur = clazz
-		while(cur != null) {
-			if(cur == BaseModel) {
+			else if(cur == BaseModel) {
+				advance(Stage.SetModelBaseClass)
 				if(clazz.getattributes(null) == null)
 					clazz.setattributes(null, { meta = this })
 				else if("meta" in clazz.getattributes(null))
@@ -142,11 +146,57 @@ return class {
 			else
 				cur = cur.getbase()
 		}
-		throw "error setting model class: class does not inherit Model"
+		throw "error setting base class: base class does not inherit any of Node, Edge or Graph"
+	}
+
+	function mknode(pathname, slots = null, staticslots = null) {
+		advance(Stage.AddNodeClasses)
+		return newclass(Node, node, pathname, slots, staticslots, rvnode)
+	}
+
+	function mkedge(pathname, slots = null, staticslots = null) {
+		advance(Stage.AddEdgeClasses)
+		return newclass(Edge, edge, pathname, slots, staticslots, rvedge)
+	}
+
+	function mkgraph(pathname, slots = null, staticslots = null) {
+		advance(Stage.AddGraphClasses)
+		return newclass(Graph, graph, pathname, slots, staticslots, rvgraph)
+	}
+
+	function regparser(entity, name = "default") {
+		advance(Stage.AddAdapters)
+		if(parsers == null)
+			parsers = {}
+		parsers[name] <- entity
+	}
+
+	function regconverter(package, entity, name = "default") {
+		advance(Stage.AddAdapters)
+		if(converters == null)
+			converters = {}
+		if(!(package in converters))
+			converters[package] <- {}
+		converters[package][name] <- entity
 	}
 
 	function finish() {
 		advance(Stage.Finished)
+	}
+
+	function new(...) {
+		advance(Stage.Finished)
+		local object = Model.instance()
+		if("constructor" in object) {
+			local args = [ object ]
+			args.extend(vargv)
+			Model.constructor.acall(args)
+		}
+		return object
+	}
+
+	function get(package) {
+		return configure(package)
 	}
 
 	function advance(target) {
@@ -154,15 +204,33 @@ return class {
 			throw "invalid operation: expected stage already finished"
 		while(stage < target) {
 			switch(stage) {
-				case Stage.SetBaseClasses:
+				case Stage.Initialized:
 					stage++
 					break
-				case Stage.AddClasses:
+				case Stage.SetNodeBaseClass:
 					stage++
 					break
-				case Stage.SetModelClass:
+				case Stage.SetEdgeBaseClass:
+					stage++
+					break
+				case Stage.SetGraphBaseClass:
+					stage++
+					break
+				case Stage.AddNodeClasses:
+					stage++
+					break
+				case Stage.AddEdgeClasses:
+					stage++
+					break
+				case Stage.AddGraphClasses:
+					stage++
+					break
+				case Stage.SetModelBaseClass:
 					if(Model == null)
 						Model = class extends BaseModel </ meta = this /> {}
+					stage++
+					break
+				case Stage.AddAdapters:
 					stage++
 					break
 				default:
@@ -174,5 +242,17 @@ return class {
 	function _export(package, entity) {
 		this.package = package
 	}
+
+	static function parser(package, options = null, type = "default") {
+		local meta = configure(package)
+		if(meta.parsers == null || !(type in meta.parsers))
+			return null
+		local Parser = import(package + "." + meta.parsers[type])
+		local parser = Parser(options)
+		assert(parser instanceof BaseParser)
+		return parser
+	}
 }
+
+return BaseMeta
 

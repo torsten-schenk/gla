@@ -4,13 +4,9 @@
  */
 
 return class {
-	entity = null
+	constructor(options = null) {}
 
-	constructor(entity) {
-		this.entity = entity
-	}
-
-	parse = null //function parse(options = null)
+	parse = null //function parse(source, model = null) : model
 
 }
 
