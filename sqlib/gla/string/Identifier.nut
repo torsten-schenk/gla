@@ -8,6 +8,9 @@ enum Type {
 	LowerUnderscore, //example_lower_underscore
 	CapitalUnderscore, //Example_Capital_Underscore
 	UpperUnderscore, //EXAMPLE_UPPER_UNDERSCORE
+	LowerHyphen, //example-lower-hyphen
+	CapitalHyphen, //Example-Capital-Hyphen
+	UpperHyphen, //EXAMPLE-UPPER-HYPHEN
 	LowerCamel, //exampleLowerCamel
 	CapitalCamel, //ExampleCapitalCamel
 	UpperGlue, //EXAMPLEUPPER
@@ -43,6 +46,16 @@ local split = function(string, type, options) {
 			else
 				return strlib.split(string, "_")
 
+		case Type.LowerHyphen:
+		case Type.CapitalHyphen:
+		case Type.UpperHyphen:
+			if(string[0] == '-' || string[string.len() - 1] == '-')
+				throw "invalid identifier '" + string + "' for type lower hyphen: must not begin or end with '-'"
+			else if(string.find("--") != null)
+				throw "invalid identifier '" + string + "' for type lower hyphen: must not contain two or more of '-'"
+			else
+				return strlib.split(string, "-")
+
 		case Type.CapitalCamel:
 		case Type.LowerCamel: {
 			local start = 0
@@ -69,6 +82,7 @@ function combine(fragments, type, options) {
 	switch(type) {
 		case Type.LowerSpace:
 		case Type.LowerUnderscore:
+		case Type.LowerHyphen:
 		case Type.LowerGlue:
 			foreach(i, v in fragments)
 				fragments[i] = v.tolower()
@@ -85,6 +99,7 @@ function combine(fragments, type, options) {
 
 		case Type.CapitalSpace:
 		case Type.CapitalUnderscore:
+		case Type.CapitalHyphen:
 		case Type.CapitalCamel:
 			foreach(i, v in fragments)
 				fragments[i] = v.tolower()
@@ -96,6 +111,7 @@ function combine(fragments, type, options) {
 
 		case Type.UpperSpace:
 		case Type.UpperUnderscore:
+		case Type.UpperHyphen:
 		case Type.UpperGlue:
 			foreach(i, v in fragments)
 				fragments[i] = v.toupper()
@@ -115,6 +131,11 @@ function combine(fragments, type, options) {
 			sep = "_"
 			break
 
+		case Type.LowerHyphen:
+		case Type.CapitalHyphen:
+		case Type.UpperHyphen:
+			sep = "_"
+			break
 	}
 
 	local result = ""
@@ -133,6 +154,9 @@ return class {
 	static LowerUnderscore = Type.LowerUnderscore
 	static CapitalUnderscore = Type.CapitalUnderscore
 	static UpperUnderscore = Type.UpperUnderscore
+	static LowerHyphen = Type.LowerHyphen
+	static CapitalHyphen = Type.CapitalHyphen
+	static UpperHyphen = Type.UpperHyphen
 	static LowerCamel = Type.LowerCamel
 	static CapitalCamel = Type.CapitalCamel
 	static UpperGlue = Type.UpperGlue

@@ -1,82 +1,53 @@
-local strlib = import("squirrel.stringlib")
-local SimpleTable = import("gla.storage.SimpleTable")
-local BaseParser = import("gla.model.Parser")
 local BaseMeta = import("gla.model.Meta")
 
-local cvbyfrom = SimpleTable(2, 1) //[ fromPackage toPackage ] -> [ converter ]
-local cvbyto = SimpleTable(2, 1) //[ toPackage fromPackage ] -> [ converter ]
-local parsers = SimpleTable(2, 1) //[ package name ] -> [ parser ]
-local importers = SimpleTable(2, 1) //[ package name ] -> [ importer ]
-local generators = SimpleTable(2, 1) //[ package name ] -> [ generator ]
-local exporters = SimpleTable(2, 1) //[ package name ] -> [ exporter ]
-
-local regexParse = strlib.regexp(@"parse:(.*)")
-local regexImport = strlib.regexp(@"import:([a-zA-Z_0-9\.]+)->(a-zA-Z0-9\.]+)")
-
-local configured = {} //package -> Meta instance
-
-local configure = function(package) {
-	if(!(package in configured)) {
-		local meta = import(package + ".meta")
-		assert(meta instanceof BaseMeta)
-		configured[package] <- meta
-	}
-/*		return
-	local config = import(package + "._model")	
-	if("parser" in config)
-		foreach(i, v in config.parser)
-			parsers.insert([ package i ], package + "." + v)
-	if("importer" in config)
-		foreach(i, v in config.parser)
-			importers.insert([ package i ], package + "." + v)
-	if("generator" in config)
-		foreach(i, v in config.generator)
-			generators.insert([ package i ], package + "." + v)
-	if("exporter" in config)
-		foreach(i, v in config.parser)
-			exporters.insert([ package i ], package + "." + v)
-	configured[package] <- import(package + ".meta")*/
-}
-
 return class {
+	curmeta = null
 	curmodel = null
 	curpackage = null
 
-	constructor() {
+	constructor(verbose = null) {
 	}
 
-/*	function parser(package, options = null, type = "default") {
-		configure(package)
-		local entity = parsers.tryValue([ package type ])
-		if(entity == null)
-			return null
-		local Parser = import(entity)
-		local parser = Parser(options)
-		assert(parser instanceof BaseParser)
-		return parser
-	}*/
+	function reset() {
+		curmeta = null
+		curmodel = null
+		curpackage = null
+	}
 
-	function parse(package, source, options = null, type = "default") {
-		local parser = BaseMeta.parser(package, options, type)
+	function parse(package, source, type = "default", options = null) {
+		local meta = BaseMeta.get(package)
+		local parser = meta.parser(type, options)
 		if(parser == null)
 			throw "no parser '" + type + "' found for package '" + package + "'"
-		local meta = BaseMeta.get(package)
 		local model = meta.new()
 		parser.parse(source, model)
+		curmeta = meta
 		curmodel = model
 		curpackage = package
 		return this
 	}
 
 	function convert(package, options = null) {
+		local tgtmeta = BaseMeta.get(package)
+		local converter = curmeta.converterto(package, options)
+		if(converter == null)
+			throw "no converter from package '" + curpackage + "' to package '" + package + "' found"
+		local model = tgtmeta.new()
+		converter.convert(curmodel, model)
+		curmeta = tgtmeta
+		curmodel = model
+		curpackage = package
 		return this
 	}
 
-	function generate(package, target, options = null, type = "default") {
+	function generate(target, type = "default", options = null) {
+		if(curmeta == null)
+			throw "cannot generate: must load a model first"
+		local generator = curmeta.generator(type, options)
+		if(generator == null)
+			throw "no generator '" + type + "' found for package '" + curpackage + "'"
+		generator.generate(curmodel, target)
 		return this
-	}
-
-	static function addparser(package, name, entity) {
 	}
 }
 

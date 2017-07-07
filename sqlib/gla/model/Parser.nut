@@ -3,10 +3,9 @@
  * - if the file contains model data directly, use an Importer instead
  */
 
-return class {
-	constructor(options = null) {}
+local Adapter = import("gla.model.Adapter")
 
-	parse = null //function parse(source, model = null) : model
-
+return class extends Adapter {
+	parse = null //function parse(source, model)
 }
 
