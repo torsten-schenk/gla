@@ -269,12 +269,28 @@ static int rscb_structure(
 	int ret;
 	SQObjectType objtype;
 	SQInteger integer;
+	int bp = sq_gettop(vm); /* stack pointer to top of stack when this function was called */
 
 	sq_pushinteger(vm, edge);
 	ret = sq_get(vm, 5);
 	if(ret != SQ_OK) {
 		self->error = gla_rt_vmthrow(self->rt, "error getting edge %d", edge);
 		return -1;
+	}
+
+	objtype = sq_gettype(vm, -1);
+	switch(objtype) {
+		case OT_CLASS: /* definition values are class attributes; push class attributes on stack */
+			sq_pushnull(vm);
+			ret = sq_getattributes(vm, -2);
+			if(ret != SQ_OK)
+				return gla_rt_vmthrow(self->rt, "error getting edge class attributes");
+			break;
+		case OT_TABLE: /* definition values are table entries; table already on top of stack, therefore nop */
+			break;
+		default:
+			self->error = gla_rt_vmthrow(self->rt, "invalid edge definition type for edge %d", edge);
+			return -1;
 	}
 
 	/* edge source */
@@ -371,7 +387,7 @@ static int rscb_structure(
 	else
 		def->priority = 0;
 
-	sq_pop(vm, 1);
+	sq_pop(vm, sq_gettop(vm) - bp);
 	return 0;
 }
 
