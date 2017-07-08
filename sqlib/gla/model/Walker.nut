@@ -1,11 +1,7 @@
 local StackExecuter = import("gla.util.StackExecuter")
 
-local WalkerEdge = class {
-	constructor(model, context) {
-	}
-
-
-}
+local BaseEdge = import("gla.model.Edge")
+local BaseNode = import("gla.model.Node")
 
 return class extends import("gla.util.StackTask") {
 	model = null
@@ -28,6 +24,8 @@ return class extends import("gla.util.StackTask") {
 
 	function begin() {
 		c = {
+			walkeredge = null
+			walkernode = null
 			edge = null
 			node = null
 		}
@@ -47,6 +45,8 @@ return class extends import("gla.util.StackTask") {
 
 	function descend() {
 		local context = {
+			walkeredge = null
+			walkernode = null
 			node = null
 			edge = null
 		}
@@ -63,16 +63,67 @@ return class extends import("gla.util.StackTask") {
 	function edgeBegin(id) {
 		local Edge = getclass().getattributes(null).edges[id]
 		if(depth == 0)
-			c.edge = Edge(model, null, c)
+			c.walkeredge = Edge(model, null, c)
 		else
-			c.edge = Edge(model, c.getdelegate().node, c)
-		c.node = c.edge.reset()
+			c.walkeredge = Edge(model, c.getdelegate().node, c)
+		local cur = c.walkeredge.reset()
+		switch(typeof(cur)) {
+			case "null":
+				return false
+			case "instance":
+				if(cur instanceof BaseEdge) {
+					c.edge = cur
+					c.node = null
+					return true
+				}
+				else if(cur instanceof BaseNode) {
+					c.edge = null
+					c.node = cur
+					return true
+				}
+				else
+					assert(false)
+			case "array":
+				c.edge = cur[0]
+				c.node = cur[1]
+				assert(c.edge instanceof BaseEdge)
+				assert(c.node instanceof BaseNode)
+				return true
+			default:
+				assert(false)
+		}
+		if(cur == null)
+			return false
 		return c.node != null
 	}
 
 	function edgeNext(id, iteration) {
-		c.node = c.edge.next(iteration)
-		return c.node != null
+		local cur = c.walkeredge.next(iteration)
+		switch(typeof(cur)) {
+			case "null":
+				return false
+			case "instance":
+				if(cur instanceof BaseEdge) {
+					c.edge = cur
+					c.node = null
+					return true
+				}
+				else if(cur instanceof BaseNode) {
+					c.edge = null
+					c.node = cur
+					return true
+				}
+				else
+					assert(false)
+			case "array":
+				c.edge = cur[0]
+				c.node = cur[1]
+				assert(c.edge instanceof BaseEdge)
+				assert(c.node instanceof BaseNode)
+				return true
+			default:
+				assert(false)
+		}
 	}
 
 	function edgeEnd(id) {
@@ -84,12 +135,17 @@ return class extends import("gla.util.StackTask") {
 			local def = nodedef[name]
 			switch(typeof(def)) {
 				case "function":
+					c.walkernode = null
 					return true
 				case "table":
+					c.walkernode = null
 					if("enter" in def)
 						return def.enter(model, c.node, c)
 					else
 						return true
+				case "class":
+					c.walkernode = def(model, c.node, c)
+					return c.walkernode.enter()
 				default:
 					throw "invalid node definition type for node '" + name + "': '" + typeof(def) + "'"
 			}
@@ -97,6 +153,9 @@ return class extends import("gla.util.StackTask") {
 	}
 
 	function nodeRun(id) {
+		if(c.walkernode != null)
+			return c.walkernode.run()
+
 		local name = getclass().getattributes(null).nodes[id]
 		if(name in nodedef) {
 			local def = nodedef[name]
@@ -115,6 +174,9 @@ return class extends import("gla.util.StackTask") {
 	}
 
 	function nodeLeave(id) {
+		if(c.walkernode != null)
+			return c.walkernode.leave()
+
 		local name = getclass().getattributes(null).nodes[id]
 		if(name in nodedef) {
 			local def = nodedef[name]
