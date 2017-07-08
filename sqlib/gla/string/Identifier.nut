@@ -1,6 +1,6 @@
 local strlib = import("squirrel.stringlib")
 
-enum Type {
+enum Style {
 	None,
 	LowerSpace, //example lower space
 	CapitalSpace, //Example Capital Space
@@ -18,46 +18,46 @@ enum Type {
 }
 
 local detect = function(identifier, options) {
-	throw "identifier type detection not yet implemented"
+	throw "identifier style detection not yet implemented"
 }
 
-local regex
+local regexStyle = strlib.regexp("^([a-z]+)[-._ ]([a-z]+)$")
 
-local split = function(string, type, options) {
+local split = function(string, style, options) {
 	assert(string != null && string.len() > 0)
-	switch(type) {
-		case Type.LowerSpace:
-		case Type.CapitalSpace:
-		case Type.UpperSpace:
+	switch(style) {
+		case Style.LowerSpace:
+		case Style.CapitalSpace:
+		case Style.UpperSpace:
 			if(string[0] == ' ' || string[string.len() - 1] == ' ')
-				throw "invalid identifier '" + string + "' for type lower underscore: must not begin or end with ' '"
+				throw "invalid identifier '" + string + "' for style lower underscore: must not begin or end with ' '"
 			else if(string.find("  ") != null)
-				throw "invalid identifier '" + string + "' for type lower underscore: must not contain two or more of ' '"
+				throw "invalid identifier '" + string + "' for style lower underscore: must not contain two or more of ' '"
 			else
 				return strlib.split(string, " ")
 
-		case Type.LowerUnderscore:
-		case Type.CapitalUnderscore:
-		case Type.UpperUnderscore:
+		case Style.LowerUnderscore:
+		case Style.CapitalUnderscore:
+		case Style.UpperUnderscore:
 			if(string[0] == '_' || string[string.len() - 1] == '_')
-				throw "invalid identifier '" + string + "' for type lower underscore: must not begin or end with '_'"
+				throw "invalid identifier '" + string + "' for style lower underscore: must not begin or end with '_'"
 			else if(string.find("__") != null)
-				throw "invalid identifier '" + string + "' for type lower underscore: must not contain two or more of '_'"
+				throw "invalid identifier '" + string + "' for style lower underscore: must not contain two or more of '_'"
 			else
 				return strlib.split(string, "_")
 
-		case Type.LowerHyphen:
-		case Type.CapitalHyphen:
-		case Type.UpperHyphen:
+		case Style.LowerHyphen:
+		case Style.CapitalHyphen:
+		case Style.UpperHyphen:
 			if(string[0] == '-' || string[string.len() - 1] == '-')
-				throw "invalid identifier '" + string + "' for type lower hyphen: must not begin or end with '-'"
+				throw "invalid identifier '" + string + "' for style lower hyphen: must not begin or end with '-'"
 			else if(string.find("--") != null)
-				throw "invalid identifier '" + string + "' for type lower hyphen: must not contain two or more of '-'"
+				throw "invalid identifier '" + string + "' for style lower hyphen: must not contain two or more of '-'"
 			else
 				return strlib.split(string, "-")
 
-		case Type.CapitalCamel:
-		case Type.LowerCamel: {
+		case Style.CapitalCamel:
+		case Style.LowerCamel: {
 			local start = 0
 			local fragments = []
 			for(local i = 1; i < string.len(); i++)
@@ -69,26 +69,26 @@ local split = function(string, type, options) {
 			return fragments
 		}
 
-		case Type.UpperGlue:
-		case Type.LowerGlue:
-			throw "cannot split identifier of type upper/lower glue"
+		case Style.UpperGlue:
+		case Style.LowerGlue:
+			throw "cannot split identifier of style upper/lower glue"
 	}
 }
 
-function combine(fragments, type, options) {
+function combine(fragments, style, options) {
 	assert(fragments != null && fragments.len() > 0)
 	local sep = ""
 
-	switch(type) {
-		case Type.LowerSpace:
-		case Type.LowerUnderscore:
-		case Type.LowerHyphen:
-		case Type.LowerGlue:
+	switch(style) {
+		case Style.LowerSpace:
+		case Style.LowerUnderscore:
+		case Style.LowerHyphen:
+		case Style.LowerGlue:
 			foreach(i, v in fragments)
 				fragments[i] = v.tolower()
 			break
 
-		case Type.LowerCamel:
+		case Style.LowerCamel:
 			foreach(i, v in fragments)
 				fragments[i] = v.tolower()
 			for(local i = 1; i < fragments.len(); i++) {
@@ -97,10 +97,10 @@ function combine(fragments, type, options) {
 			}
 			break
 
-		case Type.CapitalSpace:
-		case Type.CapitalUnderscore:
-		case Type.CapitalHyphen:
-		case Type.CapitalCamel:
+		case Style.CapitalSpace:
+		case Style.CapitalUnderscore:
+		case Style.CapitalHyphen:
+		case Style.CapitalCamel:
 			foreach(i, v in fragments)
 				fragments[i] = v.tolower()
 			for(local i = 0; i < fragments.len(); i++) {
@@ -109,31 +109,31 @@ function combine(fragments, type, options) {
 			}
 			break
 
-		case Type.UpperSpace:
-		case Type.UpperUnderscore:
-		case Type.UpperHyphen:
-		case Type.UpperGlue:
+		case Style.UpperSpace:
+		case Style.UpperUnderscore:
+		case Style.UpperHyphen:
+		case Style.UpperGlue:
 			foreach(i, v in fragments)
 				fragments[i] = v.toupper()
 			break
 	}
 
-	switch(type) {
-		case Type.LowerSpace:
-		case Type.CapitalSpace:
-		case Type.UpperSpace:
+	switch(style) {
+		case Style.LowerSpace:
+		case Style.CapitalSpace:
+		case Style.UpperSpace:
 			sep = " "
 			break
 
-		case Type.LowerUnderscore:
-		case Type.CapitalUnderscore:
-		case Type.UpperUnderscore:
+		case Style.LowerUnderscore:
+		case Style.CapitalUnderscore:
+		case Style.UpperUnderscore:
 			sep = "_"
 			break
 
-		case Type.LowerHyphen:
-		case Type.CapitalHyphen:
-		case Type.UpperHyphen:
+		case Style.LowerHyphen:
+		case Style.CapitalHyphen:
+		case Style.UpperHyphen:
 			sep = "_"
 			break
 	}
@@ -148,56 +148,56 @@ function combine(fragments, type, options) {
 }
 
 return class {
-	static LowerSpace = Type.LowerSpace
-	static CapitalSpace = Type.CapitalSpace
-	static UpperSpace = Type.UpperSpace
-	static LowerUnderscore = Type.LowerUnderscore
-	static CapitalUnderscore = Type.CapitalUnderscore
-	static UpperUnderscore = Type.UpperUnderscore
-	static LowerHyphen = Type.LowerHyphen
-	static CapitalHyphen = Type.CapitalHyphen
-	static UpperHyphen = Type.UpperHyphen
-	static LowerCamel = Type.LowerCamel
-	static CapitalCamel = Type.CapitalCamel
-	static UpperGlue = Type.UpperGlue
-	static LowerGlue = Type.LowerGlue
+	static LowerSpace = Style.LowerSpace
+	static CapitalSpace = Style.CapitalSpace
+	static UpperSpace = Style.UpperSpace
+	static LowerUnderscore = Style.LowerUnderscore
+	static CapitalUnderscore = Style.CapitalUnderscore
+	static UpperUnderscore = Style.UpperUnderscore
+	static LowerHyphen = Style.LowerHyphen
+	static CapitalHyphen = Style.CapitalHyphen
+	static UpperHyphen = Style.UpperHyphen
+	static LowerCamel = Style.LowerCamel
+	static CapitalCamel = Style.CapitalCamel
+	static UpperGlue = Style.UpperGlue
+	static LowerGlue = Style.LowerGlue
 
 	options = null
-	type = null
+	style = null
 	fragments = null
 
 	string = null
 
-	constructor(identifier = null, type = null, options = null) {
+	constructor(identifier = null, style = null, options = null) {
 		if(identifier == null || identifier == "" || identifier == [])
 			return
 
-		if(type == null)
-			type = detect(identifier, options)
-		this.type = type
+		if(style == null)
+			style = detect(identifier, options)
+		this.style = style
 		this.options = options
 
 		if(typeof(identifier) == "string") {
 			string = identifier
-			fragments = split(identifier, type, options)
+			fragments = split(identifier, style, options)
 		}
 		else if(typeof(identifier) == "array") {
 			fragments = clone(identifier)
-			string = combine(identifier, type, options)
+			string = combine(identifier, style, options)
 		}
 	}
 
-	function convert(type, options = null) {
+	function convert(style, options = null) {
 		local result = getclass().instance()
-		result.type = type
+		result.style = style
 		result.options = options
 		result.fragments = clone(fragments)
-		result.string = combine(result.fragments, type, options) //NOTE: 'fragments' gets intentionally modified
+		result.string = combine(result.fragments, style, options) //NOTE: 'fragments' gets intentionally modified
 		return result
 	}
 
 	function validate() {
-		local expected = combine(fragments, type, options)
+		local expected = combine(fragments, style, options)
 		if(expected == string)
 			return null
 		else
@@ -206,6 +206,52 @@ return class {
 
 	function tostring() {
 		return string
+	}
+
+	static function parsestyle(text) {
+		text = text.tolower()
+		local cap = regexStyle.capture(text)
+		if(cap == null)
+			throw "Unknown identifier style: '" + text + "'"
+		local caze = text.slice(cap[1].begin, cap[1].end)
+		local sep = text.slice(cap[2].begin, cap[2].end)
+		if(sep == "space") {
+			if(caze == "lower")
+				return Style.LowerSpace
+			else if(caze == "capital")
+				return Style.CapitalSpace
+			else if(caze == "upper")
+				return Style.UpperSpace
+		}
+		else if(sep == "underscore") {
+			if(caze == "lower")
+				return Style.LowerUnderscore
+			else if(caze == "capital")
+				return Style.CapitalUnderscore
+			else if(caze == "upper")
+				return Style.UpperUnderscore
+		}
+		else if(sep == "hyphen") {
+			if(caze == "lower")
+				return Style.LowerHyphen
+			else if(caze == "capital")
+				return Style.CapitalHyphen
+			else if(caze == "upper")
+				return Style.UpperHyphen
+		}
+		else if(sep == "camel") {
+			if(caze == "lower")
+				return Style.LowerCamel
+			else if(caze == "capital")
+				return Style.CapitalCamel
+		}
+		else if(sep == "glue") {
+			if(caze == "lower")
+				return Style.LowerGlue
+			else if(caze == "upper")
+				return Style.UpperGlue
+		}
+		throw "Unknown identifier style: '" + text + "'"
 	}
 }
 
