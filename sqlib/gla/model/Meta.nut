@@ -9,9 +9,10 @@ local BaseModel = import("gla.model.Model")
 local BaseParser = import("gla.model.Parser")
 local BaseConverter = import("gla.model.Converter")
 local BaseGenerator = import("gla.model.Generator")
+local BaseWalker = import("gla.model.Walker")
 
 enum RegType {
-	Parser, Importer, Converter, Exporter, Generator
+	Parser, Importer, Converter, Exporter, Generator, Walker
 }
 
 local registry = SimpleTable(3, 1) // [ type name1 name2 ] -> [ fullentity ]
@@ -203,6 +204,11 @@ BaseMeta = class {
 		registry.insert([ RegType.Generator package name ], package + "." + entity)
 	}
 
+	function regwalker(entity, name = "default") {
+		advance(Stage.AddAdapters)
+		registry.insert([ RegType.Walker package name ], package + "." + entity)
+	}
+
 	function finish() {
 		advance(Stage.Finished)
 		assert(!(package in instances))
@@ -263,6 +269,18 @@ BaseMeta = class {
 		local generator = Generator(options)
 		assert(generator instanceof BaseGenerator)
 		return generator
+	}
+
+	function walker(type = "default", options = null) {
+		if(type == null)
+			type = "default"
+		local entity = registry.tryValue([ RegType.Walker package type ])
+		if(entity == null)
+			return null
+		local Walker = import(entity)
+		local walker = Walker(options)
+		assert(walker instanceof BaseWalker)
+		return walker
 	}
 
 	function advance(target) {
