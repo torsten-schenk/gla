@@ -149,12 +149,13 @@ BaseMeta = class {
 			}
 			else if(cur == BaseModel) {
 				advance(Stage.SetModelBaseClass)
-				if(clazz.getattributes(null) == null)
+				clazz.newmember("meta", this, null, true)
+/*				if(clazz.getattributes(null) == null)
 					clazz.setattributes(null, { meta = this })
 				else if("meta" in clazz.getattributes(null))
 					throw "model class already belongs to a different meta model"
 				else
-					clazz.getattributes(null).meta <- this
+					clazz.getattributes(null).meta <- this*/
 				Model = clazz
 				return
 			}
@@ -173,12 +174,12 @@ BaseMeta = class {
 
 	function mkedge(pathname, slots = null, staticslots = null, attributes = null) {
 		advance(Stage.AddEdgeClasses)
-		return newclass(Edge, edge, pathname, slots, staticslots, rvedge)
+		return newclass(Edge, edge, pathname, slots, staticslots, attributes, rvedge)
 	}
 
 	function mkgraph(pathname, slots = null, staticslots = null, attributes = null) {
 		advance(Stage.AddGraphClasses)
-		return newclass(Graph, graph, pathname, slots, staticslots, rvgraph)
+		return newclass(Graph, graph, pathname, slots, staticslots, attributes, rvgraph)
 	}
 
 /*	function borrownode(other, pathname, mypathname = null) { //other: other meta instance; pathname: pathname in other meta; mypathname: pathname in this meta

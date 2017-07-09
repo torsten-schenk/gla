@@ -15,7 +15,7 @@ return class extends import("gla.util.StackTask") {
 
 	constructor(options = null) {}
 
-	function walk(basectx, model, nodedef, basecontext = {}) {
+	function walk(model, basecontext, nodedef) {
 		this.model = model
 		this.nodedef = nodedef
 		this.basecontext = basecontext
@@ -29,7 +29,8 @@ return class extends import("gla.util.StackTask") {
 			edge = null
 			node = null
 		}
-		c.setdelegate(basecontext)
+		if(basecontext != null)
+			c.setdelegate(basecontext)
 
 		if(init != null)
 			return init()
