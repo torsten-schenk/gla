@@ -2,6 +2,7 @@ local BaseNode = import("gla.model.Node")
 local BaseEdge = import("gla.model.Edge")
 local BaseGraph = import("gla.model.Graph")
 local BaseModel = import("gla.model.Model")
+local SimpleTable = import("gla.storage.SimpleTable")
 
 local mkinstance = function(Class, vargs, argoff = 0) {
 	local object = Class.instance()
@@ -17,6 +18,8 @@ local mkinstance = function(Class, vargs, argoff = 0) {
 
 return class {
 	//static meta: will be created in _inherited
+
+	directory = null //managed and created by subclass; expected to be instance of gla.util.Directory
 
 	nodes = null
 	graphs = null
@@ -48,9 +51,12 @@ return class {
 				throw "graph doesn not belong to model"
 			graph.checklink(Class, source, target)
 			object = mkinstance(Class, vargv, 3)
+			object.source = source
+			object.target = target
 			graph.outgoing.insert([ source target Class object ])
-			graph.outgoing.insert([ target source Class object ])
-			//TODO also keep track of all edges using 'edges' and 'rvedges'?
+			graph.incoming.insert([ target source Class object ])
+			graph.rvedges[object] <- graph.edges.len()
+			graph.edges.push(object)
 		}
 		else if(Class in meta.rvgraph) {
 			if(rvgraphs == null)
@@ -58,6 +64,10 @@ return class {
 			if(graphs == null)
 				graphs = []
 			object = mkinstance(Class, vargv)
+			object.outgoing = SimpleTable(4, 0)
+			object.incoming = SimpleTable(4, 0)
+			object.edges = []
+			object.rvedges = {}
 			rvgraphs[object] <- graphs.len()
 			graphs.push(object)
 		}
@@ -73,6 +83,11 @@ return class {
 	function dump() {
 		print("---- Model ----")
 		print("package: " + meta.package)
+		if(directory != null) {
+			print("")
+			print("directory:")
+			directory.dump()
+		}
 		print("")
 		print("nodes:")
 		foreach(i, v in nodes)
