@@ -9,10 +9,11 @@ local BaseModel = import("gla.model.Model")
 local BaseParser = import("gla.model.Parser")
 local BaseConverter = import("gla.model.Converter")
 local BaseGenerator = import("gla.model.Generator")
+local BaseCreator = import("gla.model.Creator")
 local BaseWalker = import("gla.model.Walker")
 
 enum RegType {
-	Parser, Importer, Converter, Exporter, Generator, Walker
+	Creator, Parser, Importer, Converter, Exporter, Generator, Walker
 }
 
 local registry = SimpleTable(3, 1) // [ type name1 name2 ] -> [ fullentity ]
@@ -26,7 +27,7 @@ local configure = function(package) {
 	if(package in instances) 
 		return instances[package]
 	else {
-		local meta = import(package + ".meta")
+		local meta = import(package + ".metamodel")
 		assert(meta instanceof BaseMeta)
 		assert(meta.package == package)
 		instances[package] <- meta
@@ -185,6 +186,11 @@ BaseMeta = class {
 /*	function borrownode(other, pathname, mypathname = null) { //other: other meta instance; pathname: pathname in other meta; mypathname: pathname in this meta
 	}*/
 
+	function regcreator(entity, name = "default") {
+		advance(Stage.AddAdapters)
+		registry.insert([ RegType.Creator package name ], package + "." + entity)
+	}
+
 	function regparser(entity, name = "default") {
 		advance(Stage.AddAdapters)
 		registry.insert([ RegType.Parser package name ], package + "." + entity)
@@ -282,6 +288,18 @@ BaseMeta = class {
 		local walker = Walker(options)
 		assert(walker instanceof BaseWalker)
 		return walker
+	}
+
+	function creator(type = "default", options = null) {
+		if(type == null)
+			type = "default"
+		local entity = registry.tryValue([ RegType.Creator package type ])
+		if(entity == null)
+			return null
+		local Creator = import(entity)
+		local creator = Creator(options)
+		assert(creator instanceof Creator)
+		return creator
 	}
 
 	function advance(target) {

@@ -14,6 +14,19 @@ return class {
 		curpackage = null
 	}
 
+	function create(package, source, type = "default", options = null) {
+		local meta = BaseMeta.get(package)
+		local creator = meta.creator(type, options)
+		if(creator == null)
+			throw "no creator '" + type + "' found for package '" + package + "'"
+		local model = meta.new()
+		creator.create(source, model)
+		curmeta = meta
+		curmodel = model
+		curpackage = package
+		return this
+	}
+
 	function parse(package, source, type = "default", options = null) {
 		local meta = BaseMeta.get(package)
 		local parser = meta.parser(type, options)
