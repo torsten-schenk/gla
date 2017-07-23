@@ -217,6 +217,10 @@ Base = cbridge.PackagePath(class extends Path {
 		return this
 	}
 
+	function extset(extension) {
+		_extension = extension
+	}
+
 	function extisset() {
 		return _extension != null
 	}
