@@ -58,7 +58,7 @@ return class {
 	}
 
 	function commit(sink) {
-		root.commit(sink)
+		return root.commit(sink)
 	}
 
 	function dump() {
