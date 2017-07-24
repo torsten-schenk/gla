@@ -1096,6 +1096,63 @@ static SQInteger fn_hash(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_copyto(
+		HSQUIRRELVM vm)
+{
+	SQInteger bytes = -1;
+	SQInteger total = 0;
+	io_t *self;
+	io_t *target;
+	bool isio;
+	SQUserPointer up;
+	int wcur;
+	int rcur;
+	char buffer[TMP_BUFFER_SIZE];
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) < 2 || sq_gettop(vm) > 3)
+		return gla_rt_vmthrow(rt, "Invalid argument count");
+	else if(sq_gettype(vm, 2) != OT_INSTANCE)
+		return gla_rt_vmthrow(rt, "Invalid argument 1: expected io instance");
+	else if(sq_gettop(vm) >= 3 && SQ_FAILED(sq_getinteger(vm, 3, &bytes)))
+		return gla_rt_vmthrow(rt, "Invalid argument 2: expected integer");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 1, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting instance userpointer");
+	self = up;
+
+	sq_pushobject(vm, self->rtdata->io_class);
+	sq_push(vm, 2);
+	isio = sq_instanceof(vm);
+	sq_pop(vm, 2);
+	if(!isio)
+		return gla_rt_vmthrow(rt, "Invalid argument 1: expected io instance");
+	else if(SQ_FAILED(sq_getinstanceup(vm, 2, &up, NULL)))
+		return gla_rt_vmthrow(rt, "Error getting target instance userpointer");
+	target = up;
+
+	if(bytes == -1)
+		while(gla_io_wstatus(target->io) == GLA_SUCCESS && gla_io_rstatus(self->io) == GLA_SUCCESS) {
+			rcur = gla_io_read(self->io, buffer, TMP_BUFFER_SIZE);
+			wcur = gla_io_write(target->io, buffer, rcur);
+			total += MIN(rcur, wcur);
+		}
+	else if(bytes >= 0) {
+		while(gla_io_wstatus(target->io) == GLA_SUCCESS && gla_io_rstatus(self->io) == GLA_SUCCESS && bytes > 0) {
+			rcur = gla_io_read(self->io, buffer, MIN(TMP_BUFFER_SIZE, bytes));
+			wcur = gla_io_write(target->io, buffer, rcur);
+			bytes -= MIN(rcur, wcur);
+			total += MIN(rcur, wcur);
+		}
+
+	}
+	else if(bytes < 0)
+		return gla_rt_vmthrow(rt, "Invalid argument 2: invalid size given");
+	if(gla_io_rstatus(self->io) != GLA_SUCCESS && gla_io_rstatus(self->io) != GLA_END && gla_io_wstatus(target->io) != GLA_SUCCESS && gla_io_wstatus(target->io) != GLA_END)
+		return gla_rt_vmthrow(rt, "IO error while copying data");
+	sq_pushinteger(vm, total);
+	return gla_rt_vmsuccess(rt, true);
+}
+
 static SQInteger fn_write(
 		HSQUIRRELVM vm)
 {
@@ -1436,6 +1493,10 @@ SQInteger gla_mod_io_io_augment(
 	sq_getstackobj(vm, -1, &rtdata->deserialize_string);
 	sq_addref(vm, &rtdata->deserialize_string);
 	sq_poptop(vm);
+
+	sq_pushstring(vm, "copyto", -1);
+	sq_newclosure(vm, fn_copyto, 0);
+	sq_newslot(vm, 2, false);
 
 	sq_pushstring(vm, "close", -1);
 	sq_newclosure(vm, fn_close, 0);
