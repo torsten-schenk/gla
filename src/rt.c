@@ -1111,6 +1111,27 @@ static SQInteger fn_run(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+/* checks, whether the given entity can be imported using import(<entity>). */
+static SQInteger fn_canimport(
+		HSQUIRRELVM vm)
+{
+	int ret;
+	gla_path_t path;
+
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+
+	if(sq_gettop(vm) != 2) /* TODO optional 2nd argument: constrain behaviour (see resolve order) */
+		return gla_rt_vmthrow(rt, "invalid argument count");
+	ret = gla_path_get_entity(&path, false, rt, 2, rt->mpstack);
+	if(ret != GLA_SUCCESS)
+		return gla_rt_vmthrow(rt, "error parsing path for entity");
+	if(path.extension != NULL)
+		return gla_rt_vmthrow(rt, "entity extension must not be given for imports");
+
+	sq_pushbool(vm, gla_rt_canimport(rt, &path, rt->mpstack));
+	return gla_rt_vmsuccess(rt, true);
+}
+
 /* arguments:
  *   entity/package (string): the entity to import.
  *     If no extension is given, an entity <(c)nut>[arg]._import is treated first.
@@ -1439,6 +1460,12 @@ gla_rt_t *gla_rt_new(
 
 	sq_pushstring(rt->vm, "rt", -1);
 	sq_newtable(rt->vm);
+
+	sq_pushstring(rt->vm, "canimport", -1);
+	sq_newclosure(rt->vm, fn_canimport, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
 
 	sq_pushstring(rt->vm, "now", -1);
 	sq_newclosure(rt->vm, fn_now, 0);
@@ -1880,6 +1907,47 @@ int gla_rt_init_package(
 		apr_pool_t *pool)
 {
 	return pack_init(rt, path, pool);
+}
+
+bool gla_rt_canimport(
+		gla_rt_t *rt,
+		const gla_path_t *orgpath,
+		apr_pool_t *pool)
+{
+	int ret;
+	int i;
+	gla_path_t path; /* absolute path */
+	gla_path_t relpath; /* relative path (starting at mount root) */
+	gla_path_t packpath;
+	gla_mount_t *mount;
+	import_entry_t *entry;
+
+	if(orgpath == NULL)
+		return false;
+	else if(orgpath->extension != NULL)
+		return false;
+
+	path = *orgpath;
+	packpath = *orgpath;
+	if(gla_path_type(&path) == GLA_PATH_PACKAGE)
+		path.entity = "_package";
+	else
+		gla_path_package(&packpath);
+
+	entry = gla_entityreg_try(rt->reg_imported, orgpath);
+	if(entry != NULL)
+		return true;
+	else if(errno != GLA_NOTFOUND)
+		return false;
+
+	for(i = 0; i < ARRAY_SIZE(search_extension); i++) {
+		path.extension = search_extension[i].extension;
+		relpath = path;
+		ret = mnt_resolve(rt->reg_mounted, &mount, &relpath, GLA_MOUNT_SOURCE, NULL, pool);
+		if(ret == GLA_SUCCESS)
+			return true;
+	}
+	return false;
 }
 
 /* TODO introduce global entity registry (in main.c) to prevent double initialization of same module */

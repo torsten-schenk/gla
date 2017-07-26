@@ -488,6 +488,11 @@ void *gla_rt_data_get(
 		gla_rt_t *rt,
 		const void *key);
 
+bool gla_rt_canimport(
+		gla_rt_t *rt,
+		const gla_path_t *path,
+		apr_pool_t *pool);
+
 /* imports an executable entity and pushes it onto the operand stack */
 int gla_rt_import(
 		gla_rt_t *rt,
