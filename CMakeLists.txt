@@ -46,6 +46,10 @@ set(gla_SOURCES
 	string/module.c string/unicode.c
 )
 
+if(UNIX)
+	list(APPEND gla_SOURCES "platform/unix.c")
+endif()
+
 set(gla_HEADERS
 	core.h
 )

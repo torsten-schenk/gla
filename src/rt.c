@@ -31,6 +31,7 @@
 #include "packreg.h"
 #include "store.h"
 #include "preproc.h"
+#include "platform.h"
 #include "rt.h"
 
 /* TODO check for pool argument names. Rename to 'tmp' and 'pool' or 'tmp' and 'perm' or similar */
@@ -954,6 +955,13 @@ static SQInteger fn_compile(
 	return gla_rt_vmsuccess(rt, true);
 }
 
+static SQInteger fn_fopen(
+		HSQUIRRELVM vm)
+{
+	gla_rt_t *rt = gla_rt_vmbegin(vm);
+	return gla_rt_vmthrow(rt, "'fopen' not yet implemented");
+}
+
 /* TODO see path.h, comment
  * - move module io to this directory, i.e. delete module io and consider it as part of kernel 
  * - refactor function fn_open() in packpath.c to here
@@ -1460,6 +1468,18 @@ gla_rt_t *gla_rt_new(
 
 	sq_pushstring(rt->vm, "rt", -1);
 	sq_newtable(rt->vm);
+
+	sq_pushstring(rt->vm, "exec", -1);
+	sq_newclosure(rt->vm, _gla_platform_fn_exec, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
+
+	sq_pushstring(rt->vm, "fopen", -1);
+	sq_newclosure(rt->vm, fn_fopen, 0);
+	ret = sq_newslot(rt->vm, -3, false);
+	if(ret != SQ_OK)
+		return NULL;
 
 	sq_pushstring(rt->vm, "canimport", -1);
 	sq_newclosure(rt->vm, fn_canimport, 0);
@@ -2064,7 +2084,7 @@ int gla_rt_import(
 				LOG_ERROR("error getting filesystem path of dynamic library");
 				return errno;
 			}
-			mod_handle = dlopen(mod_file, RTLD_NOW);
+			mod_handle = dlopen(mod_file, RTLD_NOW);/* TODO move to platform.c */
 			if(mod_handle == NULL) {
 				LOG_ERROR("error loading dynamic library: %s", dlerror());
 				return GLA_IO;

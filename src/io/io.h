@@ -22,7 +22,3 @@ int gla_mod_io_io_init(
 		uint64_t woff,
 		apr_pool_t *pool);
 
-gla_io_t *gla_mod_io_io_get(
-		gla_rt_t *rt,
-		int idx);
-
