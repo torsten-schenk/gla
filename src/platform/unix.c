@@ -11,6 +11,7 @@
 
 #include "../io/module.h"
 #include "../common.h"
+#include "../_io.h"
 #include "../rt.h"
 
 #define BUFFER_SIZE 1024
@@ -24,6 +25,26 @@ enum {
 	STDMODE_PARENT,
 	STDMODE_IO
 };
+
+static void exec_copy_pipe(
+		char *buffer,
+		int *fd,
+		gla_io_t *io)
+{
+	int ret;
+	int bytes = read(fd[0], buffer, BUFFER_SIZE);
+	if(bytes <= 0) {
+		close(fd[0]);
+		fd[0] = -1;
+	}
+	else if(io != NULL) {
+		if(io->meta->write == NULL) {} /* TODO write error */
+		else {
+			ret = io->meta->write(io, buffer, bytes);
+		/* TODO check 'ret' for error */
+		}
+	}
+}
 
 SQInteger _gla_platform_fn_exec(
 		HSQUIRRELVM vm)
@@ -244,25 +265,22 @@ SQInteger _gla_platform_fn_exec(
 			close(pipe_stdin[1]);
 			pipe_stdin[1] = -1;
 		}
-		if(mode_stdout == STDMODE_DISCARD) {
-			close(pipe_stdout[0]);
-			pipe_stdout[0] = -1;
-		}
-		if(mode_stderr == STDMODE_DISCARD) {
-			close(pipe_stderr[0]);
-			pipe_stderr[0] = -1;
-		}
 		memset(&sa, 0, sizeof(sa));
 		sa.sa_handler = dummy_sigchld;
 		sigaction(SIGCHLD, &sa, &sa_old);
 		for(;;) {
 			fd_set fds;
-			int nfds;
+			int nfds = 0;
 			struct timeval timeout;
 			timeout.tv_sec = 1;
 			timeout.tv_usec = 0;
 
 			FD_ZERO(&fds);
+			if(pipe_ctrl[0] != -1) {
+				FD_SET(pipe_ctrl[0], &fds);
+				if(pipe_ctrl[0] > nfds)
+					nfds = pipe_ctrl[0];
+			}
 			if(pipe_stdout[0] != -1) {
 				FD_SET(pipe_stdout[0], &fds);
 				if(pipe_stdout[0] > nfds)
@@ -274,45 +292,52 @@ SQInteger _gla_platform_fn_exec(
 					nfds = pipe_stderr[0];
 			}
 			ret = select(nfds, &fds, NULL, NULL, &timeout);
-			if(ret == 0) { /* timeout */
-			}
-			else if(ret == -1) { /* error, possibly interrupted */
-				if(errno == EINTR) {
-					ret = waitpid(pid, &exitcode, WNOHANG);
-					if(ret == pid) { /* finished */
+			if(ret == 0 || (ret == -1 && errno == EINTR)) { /* timeout or interruption */
+				ret = waitpid(pid, &exitcode, WNOHANG);
+				if(ret == pid) { /* finished */
+					sigaction(SIGCHLD, &sa_old, NULL);
+					if(pipe_ctrl[0] != -1) {
 						ret = read(pipe_ctrl[0], &c, 1);
 						if(ret == 1)
 							err_message = "error executing command";
 						else
 							err_message = NULL;
+					}
+					else
+						err_message = NULL;
+					while(pipe_stdout[0] != -1)
+						exec_copy_pipe(buffer, pipe_stdout, my_stdout);
+					while(pipe_stderr[0] != -1)
+						exec_copy_pipe(buffer, pipe_stderr, my_stderr);
+					goto error;
+				}
+			}
+			else if(ret == -1) { /* error */
+				printf("error while executing"); /* TODO what to do here? possibly count down some retries of select() and throw error if countdown has reached 0 */
+				sleep(1);
+			}
+			else {
+				if(pipe_ctrl[0] != -1 && FD_ISSET(pipe_ctrl[0], &fds)) {
+					int bytes = read(pipe_ctrl[0], &c, 1);
+					if(bytes == 0) {
+						close(pipe_ctrl[0]);
+						pipe_ctrl[0] = -1;
+					}
+					else {
 						sigaction(SIGCHLD, &sa_old, NULL);
+						ret = waitpid(pid, &exitcode, 0);
+						while(pipe_stdout[0] != -1)
+							exec_copy_pipe(buffer, pipe_stdout, my_stdout);
+						while(pipe_stderr[0] != -1)
+							exec_copy_pipe(buffer, pipe_stderr, my_stderr);
+						err_message = "error executing command";
 						goto error;
 					}
 				}
-				else { /* other error */
-					printf("error while executing"); /* TODO what to do here? possibly count down some retries of select() and throw error if countdown has reached 0 */
-					sleep(1);
-				}
-			}
-			else {
-				if(pipe_stdout[0] != -1 && FD_ISSET(pipe_stdout[0], &fds)) {
-					int bytes = read(pipe_stdout[0], buffer, BUFFER_SIZE - 1);
-					if(bytes > 0)
-						buffer[bytes] = 0;
-					else
-						buffer[0] = 0;
-					printf("STDOUT READ: %d '%s'\n", bytes, buffer);
-					assert(my_stdout != NULL);
-				}
-				if(pipe_stderr[0] != -1 && FD_ISSET(pipe_stderr[0], &fds)) {
-					int bytes = read(pipe_stderr[0], buffer, BUFFER_SIZE - 1);
-					if(bytes > 0)
-						buffer[bytes] = 0;
-					else
-						buffer[0] = 0;
-					printf("STDERR READ: %d '%s'\n", bytes, buffer);
-					assert(my_stderr != NULL);
-				}
+				if(pipe_stdout[0] != -1 && FD_ISSET(pipe_stdout[0], &fds))
+					exec_copy_pipe(buffer, pipe_stdout, my_stdout);
+				if(pipe_stderr[0] != -1 && FD_ISSET(pipe_stderr[0], &fds))
+					exec_copy_pipe(buffer, pipe_stderr, my_stderr);
 			}
 		}
 	}

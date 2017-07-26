@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "../io/module.h"
 #include "../rt.h"
 #include "../_io.h"
 
@@ -351,9 +352,11 @@ static SQInteger fn_tostring(
 
 		di = string;
 		for(cur = io->head; cur->next != NULL; cur = cur->next) {
+			assert(di + io->cluster_size <= string + size);
 			memcpy(di, cur->data, io->cluster_size);
 			di += io->cluster_size;
 		}
+		assert(di + io->tailfill <= string + size);
 		memcpy(di, cur->data, io->tailfill);
 		sq_pushstring(vm, string, size);
 	}
