@@ -23,26 +23,39 @@ static void dummy_sigchld(
 enum {
 	STDMODE_DISCARD,
 	STDMODE_PARENT,
-	STDMODE_IO
+	STDMODE_IO,
+	STDMODE_STRING
 };
 
-static void exec_copy_pipe(
-		char *buffer,
+static void exec_copy_topipe(
 		int *fd,
+		char *buffer,
 		gla_io_t *io)
 {
-	int ret;
+	int bytes = io->meta->read(io, buffer, BUFFER_SIZE);
+	if(bytes <= 0) {
+		close(fd[1]);
+		fd[1] = -1;
+	}
+	else {
+		write(fd[1], buffer, bytes);
+	}
+}
+
+static void exec_copy_frompipe(
+		char *buffer,
+		int *fd,
+		gla_io_t *io,
+		int mode)
+{
 	int bytes = read(fd[0], buffer, BUFFER_SIZE);
 	if(bytes <= 0) {
 		close(fd[0]);
 		fd[0] = -1;
 	}
 	else if(io != NULL) {
-		if(io->meta->write == NULL) {} /* TODO write error */
-		else {
-			ret = io->meta->write(io, buffer, bytes);
-		/* TODO check 'ret' for error */
-		}
+		assert(io->meta->write != NULL);
+		io->meta->write(io, buffer, bytes);
 	}
 }
 
@@ -53,6 +66,9 @@ SQInteger _gla_platform_fn_exec(
 	int ret;
 	int pid;
 	const SQChar *command;
+	const SQChar *string_stdin;
+	int offset_stdin = 0;
+	int len_stdin = 0;
 	SQBool use_parentstd;
 	const char **args;
 	gla_io_t *my_stdin = NULL;
@@ -124,11 +140,18 @@ SQInteger _gla_platform_fn_exec(
 					mode_stdin = STDMODE_DISCARD;
 				break;
 			case OT_STRING:
-				return gla_rt_vmthrow(rt, "stdin string not yet implemented");
+				mode_stdin = STDMODE_STRING;
+				sq_getstring(vm, 3, &string_stdin);
+				len_stdin = strlen(string_stdin);
+				offset_stdin = 0;
+				break;
 			default:
+				mode_stdin = STDMODE_IO;
 				my_stdin = gla_mod_io_io_get(rt, 3);
 				if(my_stdin == NULL)
 					return gla_rt_vmthrow(rt, "invalid argument 2: expected null, bool or input stream");
+				else if(my_stdin->meta->read == NULL)
+					return gla_rt_vmthrow(rt, "invalid argument 2: stream for stdin not readable");
 				break;
 		}
 	else
@@ -146,9 +169,12 @@ SQInteger _gla_platform_fn_exec(
 					mode_stdout = STDMODE_DISCARD;
 				break;
 			default:
+				mode_stdin = STDMODE_IO;
 				my_stdout = gla_mod_io_io_get(rt, 4);
 				if(my_stdout == NULL)
-					return gla_rt_vmthrow(rt, "invalid argument 4: expected null, bool or input stream");
+					return gla_rt_vmthrow(rt, "invalid argument 3: expected null, bool or output stream");
+				else if(my_stdout->meta->write == NULL)
+					return gla_rt_vmthrow(rt, "invalid argument 3: stream for stdout not writeable");
 				break;
 		}
 	else
@@ -166,9 +192,12 @@ SQInteger _gla_platform_fn_exec(
 					mode_stderr = STDMODE_DISCARD;
 				break;
 			default:
+				mode_stdin = STDMODE_IO;
 				my_stderr = gla_mod_io_io_get(rt, 5);
 				if(my_stderr == NULL)
-					return gla_rt_vmthrow(rt, "invalid argument 5: expected null, bool or input stream");
+					return gla_rt_vmthrow(rt, "invalid argument 4: expected null, bool or input stream");
+				else if(my_stderr->meta->write == NULL)
+					return gla_rt_vmthrow(rt, "invalid argument 4: stream for stderr not writeable");
 				break;
 		}
 	else
@@ -182,28 +211,22 @@ SQInteger _gla_platform_fn_exec(
 		goto error;
 	if(fcntl(pipe_ctrl[1], F_SETFD, fcntl(pipe_ctrl[1], F_GETFD) | FD_CLOEXEC) == -1)
 		goto error;
-	if(mode_stdin != STDMODE_PARENT) {
-		ret = pipe(pipe_stdin);
-		if(ret < 0)
-			goto error;
-	}
-	if(mode_stdout != STDMODE_PARENT) {
-		ret = pipe(pipe_stdout);
-		if(ret < 0)
-			goto error;
-	}
-	if(mode_stderr != STDMODE_PARENT) {
-		ret = pipe(pipe_stderr);
-		if(ret < 0)
-			goto error;
-	}
+	ret = pipe(pipe_stdin);
+	if(ret < 0)
+		goto error;
+	ret = pipe(pipe_stdout);
+	if(ret < 0)
+		goto error;
+	ret = pipe(pipe_stderr);
+	if(ret < 0)
+		goto error;
 
 	pid = fork();
 	if(pid == 0) {
 		c = 0;
 		close(pipe_ctrl[0]);
 		if(mode_stdin != STDMODE_PARENT) {
-			ret = dup2(pipe_stdin[0], STDIN_FILENO);
+			ret = dup2(pipe_stdin[0], fileno(stdin));
 			if(ret == -1) {
 				write(pipe_ctrl[1], &c, 1);
 				exit(0);
@@ -212,25 +235,21 @@ SQInteger _gla_platform_fn_exec(
 			close(pipe_stdin[1]);
 		}
 
-		if(mode_stdout != STDMODE_PARENT) {
-			ret = dup2(pipe_stdout[1], STDOUT_FILENO);
-			if(ret == -1) {
-				write(pipe_ctrl[1], &c, 1);
-				exit(0);
-			}
-			close(pipe_stdout[0]);
-			close(pipe_stdout[1]);
+		ret = dup2(pipe_stdout[1], fileno(stdout));
+		if(ret == -1) {
+			write(pipe_ctrl[1], &c, 1);
+			exit(0);
 		}
+		close(pipe_stdout[0]);
+		close(pipe_stdout[1]);
 
-		if(mode_stderr != STDMODE_PARENT) {
-			ret = dup2(pipe_stderr[1], STDERR_FILENO);
-			if(ret == -1) {
-				write(pipe_ctrl[1], &c, 1);
-				exit(0);
-			}
-			close(pipe_stderr[0]);
-			close(pipe_stderr[1]);
+		ret = dup2(pipe_stderr[1], fileno(stderr));
+		if(ret == -1) {
+			write(pipe_ctrl[1], &c, 1);
+			exit(0);
 		}
+		close(pipe_stderr[0]);
+		close(pipe_stderr[1]);
 
 		c = 1;
 		write(pipe_ctrl[1], &c, 1);
@@ -240,21 +259,16 @@ SQInteger _gla_platform_fn_exec(
 		exit(0);
 	}
 	else if(pid > 0) {
-		struct sigaction sa;
-		struct sigaction sa_old;
 		close(pipe_ctrl[1]);
-
-		if(pipe_stderr[1] != -1)
-			close(pipe_stderr[1]);
-		if(pipe_stdout[1] != -1)
-			close(pipe_stdout[1]);
-		if(pipe_stdin[0] != -1)
-			close(pipe_stdin[0]);
+		close(pipe_stderr[1]);
+		close(pipe_stdout[1]);
+		close(pipe_stdin[0]);
 		pipe_ctrl[1] = -1;
 		pipe_stderr[1] = -1;
 		pipe_stdout[1] = -1;
 		pipe_stdin[0] = -1;
 
+		/* wait for child process to be setup */
 		ret = read(pipe_ctrl[0], &c, 1);
 		if(c == 0) {
 			err_message = "error starting child process";
@@ -265,79 +279,95 @@ SQInteger _gla_platform_fn_exec(
 			close(pipe_stdin[1]);
 			pipe_stdin[1] = -1;
 		}
-		memset(&sa, 0, sizeof(sa));
-		sa.sa_handler = dummy_sigchld;
-		sigaction(SIGCHLD, &sa, &sa_old);
 		for(;;) {
-			fd_set fds;
+			fd_set rfds;
+			fd_set wfds;
 			int nfds = 0;
 			struct timeval timeout;
-			timeout.tv_sec = 1;
+			timeout.tv_sec = 10;
 			timeout.tv_usec = 0;
 
-			FD_ZERO(&fds);
+			FD_ZERO(&rfds);
+			FD_ZERO(&wfds);
 			if(pipe_ctrl[0] != -1) {
-				FD_SET(pipe_ctrl[0], &fds);
+				FD_SET(pipe_ctrl[0], &rfds);
 				if(pipe_ctrl[0] > nfds)
 					nfds = pipe_ctrl[0];
 			}
+			if(pipe_stdin[1] != -1) {
+				FD_SET(pipe_stdin[1], &wfds);
+				if(pipe_stdin[1] > nfds)
+					nfds = pipe_stdin[1];
+			}
 			if(pipe_stdout[0] != -1) {
-				FD_SET(pipe_stdout[0], &fds);
+				FD_SET(pipe_stdout[0], &rfds);
 				if(pipe_stdout[0] > nfds)
 					nfds = pipe_stdout[0];
 			}
 			if(pipe_stderr[0] != -1) {
-				FD_SET(pipe_stderr[0], &fds);
+				FD_SET(pipe_stderr[0], &rfds);
 				if(pipe_stderr[0] > nfds)
 					nfds = pipe_stderr[0];
 			}
-			ret = select(nfds, &fds, NULL, NULL, &timeout);
-			if(ret == 0 || (ret == -1 && errno == EINTR)) { /* timeout or interruption */
-				ret = waitpid(pid, &exitcode, WNOHANG);
-				if(ret == pid) { /* finished */
-					sigaction(SIGCHLD, &sa_old, NULL);
-					if(pipe_ctrl[0] != -1) {
-						ret = read(pipe_ctrl[0], &c, 1);
-						if(ret == 1)
-							err_message = "error executing command";
-						else
-							err_message = NULL;
-					}
-					else
-						err_message = NULL;
-					while(pipe_stdout[0] != -1)
-						exec_copy_pipe(buffer, pipe_stdout, my_stdout);
-					while(pipe_stderr[0] != -1)
-						exec_copy_pipe(buffer, pipe_stderr, my_stderr);
-					goto error;
+			if(nfds == 0) { /* child process exited, either with error or success. err_message already has been set in fd_set handler for pipe_ctrl. */
+				while((ret = waitpid(pid, &exitcode, 0)) != pid);
+				if(err_message == NULL) {
+					if(my_stdout != NULL && my_stdout->wstatus != GLA_SUCCESS)
+						err_message = "error writing stdout";
+					else if(my_stdout != NULL && my_stdout->wstatus != GLA_SUCCESS)
+						err_message = "error writing stderr";
 				}
+				goto error;
+			}
+			ret = select(nfds + 1, &rfds, &wfds, NULL, &timeout);
+			if(ret == 0 || (ret == -1 && errno == EINTR)) { /* timeout or interruption */
 			}
 			else if(ret == -1) { /* error */
-				printf("error while executing"); /* TODO what to do here? possibly count down some retries of select() and throw error if countdown has reached 0 */
+				printf("error in select()"); /* TODO what to do here? possibly count down some retries of select() and throw error if countdown has reached 0 */
 				sleep(1);
 			}
-			else {
-				if(pipe_ctrl[0] != -1 && FD_ISSET(pipe_ctrl[0], &fds)) {
+			else { /* select() selected some fds for us */
+				if(pipe_ctrl[0] != -1 && FD_ISSET(pipe_ctrl[0], &rfds)) { /* idea: if this pipe is closed, execvp() was successful. otherwise, the write() after execve() has been executed and execvp() did not succeed. so once we're here, we know if execution failed or not. */
 					int bytes = read(pipe_ctrl[0], &c, 1);
-					if(bytes == 0) {
-						close(pipe_ctrl[0]);
-						pipe_ctrl[0] = -1;
-					}
-					else {
-						sigaction(SIGCHLD, &sa_old, NULL);
-						ret = waitpid(pid, &exitcode, 0);
-						while(pipe_stdout[0] != -1)
-							exec_copy_pipe(buffer, pipe_stdout, my_stdout);
-						while(pipe_stderr[0] != -1)
-							exec_copy_pipe(buffer, pipe_stderr, my_stderr);
+					close(pipe_ctrl[0]);
+					pipe_ctrl[0] = -1;
+					if(bytes == 0) /* pipe has been closed, execvp() successful */
+						err_message = NULL;
+					else /* write() has been called, execvp() error */
 						err_message = "error executing command";
-						goto error;
+				}
+				if(pipe_stdin[1] != -1 && FD_ISSET(pipe_stdin[1], &wfds)) {
+					switch(mode_stdin) {
+						case STDMODE_STRING:
+							if(offset_stdin == len_stdin) {
+								close(pipe_stdin[1]);
+								pipe_stdin[1] = -1;
+							}
+							else {
+								ret = write(pipe_stdin[1], string_stdin, len_stdin - offset_stdin);
+								if(ret <= 0) { /* TODO is this an error in every case/in any case? */
+									close(pipe_stdin[1]);
+									pipe_stdin[1] = -1;
+								}
+								else
+									offset_stdin += ret;
+							}
+							break;
+						case STDMODE_IO:
+							exec_copy_topipe(pipe_stdin, buffer, my_stdin);
+							break;
+						case STDMODE_DISCARD:
+							close(pipe_stdin[1]);
+							pipe_stdin[1] = -1;
+							break;
+						default:
+							assert(false);
 					}
 				}
-				if(pipe_stdout[0] != -1 && FD_ISSET(pipe_stdout[0], &fds))
-					exec_copy_pipe(buffer, pipe_stdout, my_stdout);
-				if(pipe_stderr[0] != -1 && FD_ISSET(pipe_stderr[0], &fds))
-					exec_copy_pipe(buffer, pipe_stderr, my_stderr);
+				if(pipe_stdout[0] != -1 && FD_ISSET(pipe_stdout[0], &rfds))
+					exec_copy_frompipe(buffer, pipe_stdout, my_stdout, mode_stdout);
+				if(pipe_stderr[0] != -1 && FD_ISSET(pipe_stderr[0], &rfds))
+					exec_copy_frompipe(buffer, pipe_stderr, my_stderr, mode_stderr);
 			}
 		}
 	}
