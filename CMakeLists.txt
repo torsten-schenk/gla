@@ -40,7 +40,7 @@ set(gla_SOURCES
 	storage/module.c storage/colspec.c storage/interface.c storage/memory.c storage/bdb.c
 	xml/module.c xml/saxparser.c
 	util/module.c util/stackexec.c util/exec.c util/time.c util/date.c
-	io/module.c io/io.c io/buffer.c io/packpath.c io/hash.c
+	io/module.c io/io.c io/buffer.c io/packpath.c io/hash.c io/file.c
 	csv/module.c csv/cbparser.c
 	sqstdlib/module.c
 	string/module.c string/unicode.c

@@ -5,6 +5,7 @@
 #include "hash.h"
 #include "io.h"
 #include "buffer.h"
+#include "file.h"
 #include "packpath.h"
 
 #include "module.h"
@@ -32,6 +33,10 @@ static int push_cbridge(
 
 	sq_pushstring(vm, "Buffer", -1);
 	sq_newclosure(vm, gla_mod_io_buffer_augment, 0);
+	sq_newslot(vm, -3, false);
+
+	sq_pushstring(vm, "File", -1);
+	sq_newclosure(vm, gla_mod_io_file_augment, 0);
 	sq_newslot(vm, -3, false);
 
 	sq_pushstring(vm, "PackagePath", -1);

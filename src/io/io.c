@@ -6,6 +6,7 @@
 #include "../log.h"
 #include "../rt.h"
 
+#include "module.h"
 #include "_rtdata.h"
 #include "hash.h"
 #include "io.h"
